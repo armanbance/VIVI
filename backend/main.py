@@ -28,18 +28,24 @@ app.add_middleware(
 
 # ========== HELPER FUNCTIONS ==========
 
+
+
 def is_looking_at_camera():
-    cap = cv2.VideoCapture(1)
+    cap = cv2.VideoCapture(0)
 
     if not cap.isOpened():
         print("❌ Failed to open webcam.")
         return False
 
-    mp_face = mp.solutions.face_detection.FaceDetection(
-        model_selection=0, min_detection_confidence=0.5
+    mp_face_mesh = mp.solutions.face_mesh.FaceMesh(
+        static_image_mode=False,
+        max_num_faces=1,
+        refine_landmarks=True,
+        min_detection_confidence=0.6,
+        min_tracking_confidence=0.6
     )
 
-    print("🟡 Looking for a face...")
+    print("🟡 Checking for direct eye contact...")
 
     looking = False
     frames_checked = 0
@@ -47,33 +53,49 @@ def is_looking_at_camera():
     for i in range(1000):  # ~5 seconds
         ret, frame = cap.read()
         if not ret:
-            print(f"[Frame {i}] ❌ Failed to read frame.")
+            print(f"[Frame {i}] ❌ Frame grab failed.")
             continue
 
         frames_checked += 1
-        print(f"[Frame {i}] ✅ Frame captured.")
-
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = mp_face.process(rgb)
+        results = mp_face_mesh.process(rgb)
 
-        if results.detections:
-            print(f"[Frame {i}] ✅ Face detected with {len(results.detections)} detection(s).")
-            for det in results.detections:
-                score = det.score[0] if det.score else 0
-                print(f"   ➤ Confidence: {score:.2f}")
-                if score > 0.5:
-                    looking = True
-                    break
-            if looking:
-                break
+        if results.multi_face_landmarks:
+            print(f"[Frame {i}] 👁️ Face mesh detected.")
+            landmarks = results.multi_face_landmarks[0].landmark
+
+            # Landmark indices
+            LEFT_EYE = (33, 133)
+            RIGHT_EYE = (362, 263)
+            LEFT_IRIS = 468
+            RIGHT_IRIS = 473
+
+            def is_eye_centered(eye_corners, iris_idx):
+                x1 = landmarks[eye_corners[0]].x
+                x2 = landmarks[eye_corners[1]].x
+                cx = landmarks[iris_idx].x
+                center = (x1 + x2) / 2
+                delta = abs(cx - center)
+                print(f"   ➤ Eye delta: {delta:.4f}")
+                return delta < 0.003  # 🔥 More strict now!
+
+            left_ok = is_eye_centered(LEFT_EYE, LEFT_IRIS)
+            right_ok = is_eye_centered(RIGHT_EYE, RIGHT_IRIS)
+
+            if left_ok and right_ok:
+                print(f"[Frame {i}] ✅ STRONG GAZE DETECTED")
+                looking = True
+            else:
+                print(f"[Frame {i}] ❌ Gaze NOT centered.")
+
         else:
-            print(f"[Frame {i}] ❌ No face detected.")
+            print(f"[Frame {i}] ❌ No face mesh.")
 
         time.sleep(0.05)
 
     cap.release()
-    print(f"🔚 Finished checking {frames_checked} frames.")
-    print(f"🧠 Final result: {'LOOKING' if looking else 'NOT looking'}")
+    print(f"🔚 Checked {frames_checked} frames.")
+    print(f"🧠 Final Gaze Verdict: {'LOOKING AT CAMERA' if looking else 'NOT looking'}")
 
     return looking
 
