@@ -2,9 +2,18 @@ import { useState } from "react";
 import reactLogo from "./assets/react.svg";
 import viteLogo from "/vite.svg";
 import "./App.css";
+import LoginButton from "./components/LoginButton";
+import LogoutButton from "./components/LogoutButton";
+import Profile from "./components/Profile";
+import { useAuth0 } from "@auth0/auth0-react";
 
 function App() {
   const [count, setCount] = useState(0);
+  const { isAuthenticated, isLoading } = useAuth0();
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <>
@@ -17,6 +26,12 @@ function App() {
         </a>
       </div>
       <h1 className="text-9xl">Vite + React</h1>
+
+      <div className="auth-section">
+        {isAuthenticated ? <LogoutButton /> : <LoginButton />}
+        <Profile />
+      </div>
+
       <div className="card">
         <button onClick={() => setCount((count) => count + 1)}>
           count is {count}

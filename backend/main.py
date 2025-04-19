@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import items
-
+from db import test_connection
+from routers import users, auth0_users
 app = FastAPI(title="HackDavis API")
 
 # Configure CORS
@@ -14,7 +14,8 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(items.router)
+app.include_router(users.router)
+app.include_router(auth0_users.router)
 
 @app.get("/")
 async def root():
@@ -23,6 +24,11 @@ async def root():
 @app.get("/api/health")
 async def health_check():
     return {"status": "healthy"}
+
+@app.get("/api/db-status")
+async def db_status():
+    """Check MongoDB connection status"""
+    return await test_connection()
 
 if __name__ == "__main__":
     import uvicorn
