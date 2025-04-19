@@ -31,6 +31,8 @@ app.add_middleware(
 
 
 def is_looking_at_camera():
+    gazing = 0
+    not_gazing = 0
     cap = cv2.VideoCapture(0)
 
     if not cap.isOpened():
@@ -50,7 +52,7 @@ def is_looking_at_camera():
     looking = False
     frames_checked = 0
 
-    for i in range(1000):  # ~5 seconds
+    for i in range(40):  # ~5 seconds at 20 FPS
         ret, frame = cap.read()
         if not ret:
             print(f"[Frame {i}] ❌ Frame grab failed.")
@@ -77,27 +79,39 @@ def is_looking_at_camera():
                 center = (x1 + x2) / 2
                 delta = abs(cx - center)
                 print(f"   ➤ Eye delta: {delta:.4f}")
-                return delta < 0.003  # 🔥 More strict now!
+                return delta < 0.002  # 🔥 More strict now!
 
             left_ok = is_eye_centered(LEFT_EYE, LEFT_IRIS)
             right_ok = is_eye_centered(RIGHT_EYE, RIGHT_IRIS)
 
             if left_ok and right_ok:
                 print(f"[Frame {i}] ✅ STRONG GAZE DETECTED")
-                looking = True
+                gazing += 1
             else:
                 print(f"[Frame {i}] ❌ Gaze NOT centered.")
+                not_gazing += 1
 
         else:
             print(f"[Frame {i}] ❌ No face mesh.")
+            not_gazing += 1
+
 
         time.sleep(0.05)
 
+    if gazing >= not_gazing:
+        looking = True
+    else:
+        looking = False
+
     cap.release()
+
+
     print(f"🔚 Checked {frames_checked} frames.")
     print(f"🧠 Final Gaze Verdict: {'LOOKING AT CAMERA' if looking else 'NOT looking'}")
 
     return looking
+
+
 
 
 # ========== ROUTES ==========
