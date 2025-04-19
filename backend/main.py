@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from db import test_connection
-from routers import users, auth0_users
+from routers import auth0_users
 app = FastAPI(title="HackDavis API")
 
 # Configure CORS
@@ -14,7 +14,6 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(users.router)
 app.include_router(auth0_users.router)
 
 @app.get("/")
