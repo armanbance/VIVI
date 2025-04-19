@@ -1,13 +1,7 @@
 fastapi==0.104.1
 uvicorn==0.23.2
 pydantic==2.4.2
-python-dotenv==1.0.0 
-opencv-python
-mediapipe
-python-multipart
-sounddevice
-scipy
-whisper
-openai
-numpy
+python-dotenv==1.0.0
+openai==1.12.0
+python-multipart==0.0.9
 

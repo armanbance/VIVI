@@ -1,16 +1,19 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import cv2
 import time
-import numpy as np
-import sounddevice as sd
-import scipy.io.wavfile as wav
-import whisper
-import openai
+from openai import OpenAI
 import mediapipe as mp
+import os
+from dotenv import load_dotenv
+import tempfile
+
 
 # ========== CONFIG ==========
-openai.api_key = "YOUR_OPENAI_API_KEY"  # Replace this!
+
+load_dotenv()
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 app = FastAPI(title="HackDavis API")
 
@@ -41,7 +44,7 @@ def is_looking_at_camera():
     looking = False
     frames_checked = 0
 
-    for i in range(100):  # ~5 seconds
+    for i in range(1000):  # ~5 seconds
         ret, frame = cap.read()
         if not ret:
             print(f"[Frame {i}] ❌ Failed to read frame.")
@@ -104,6 +107,61 @@ def start_session():
         "prompt": text,
         "image_url": image_url
     }
+
+
+# == Generate Image ==
+
+@app.get("/generate-image")
+def generate_image(title: str, transcript: str = None):
+    print(title, ":", transcript)
+    if transcript is None:
+        return {"message": "No audio"}
+    try:
+        response = client.images.generate(
+            model="dall-e-3",
+            prompt="Generate a simple, cartoonish illustration inspired by the book title: " + title + ". Create an image that represents the key themes and atmosphere from this text: " + transcript + ". The style should be colorful, minimalistic, and suitable for a children's book or storybook.",
+            n=1,
+            size="1024x1024"
+        )
+        image_url = response.data[0].url
+        return {"image_url": image_url}
+    except Exception as e:
+        return {"error": str(e)}
+
+# == Transcribe ==
+
+@app.post("/transcribe")
+async def transcribe_audio(audio: UploadFile = File(...)):
+    try:
+        # Create a temporary file to save the uploaded audio
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_file:
+            temp_file.write(await audio.read())
+            temp_file_path = temp_file.name
+        
+        # Open the file 
+        with open(temp_file_path, 'rb') as audio_file:
+            transcription = client.audio.transcriptions.create(
+                model="whisper-1",
+                file=audio_file
+            )
+
+        # Remove the temporary file
+        os.unlink(temp_file_path)
+
+        print(transcription.text)
+
+        # Return the transcription text
+        return {"text": transcription.text}
+
+    except Exception as transcription_error:
+        # Remove the temporary file in case of error
+        if os.path.exists(temp_file_path):
+            os.unlink(temp_file_path)
+        
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Transcription failed: {str(transcription_error)}"
+        )
 
 # ========== DEV SERVER ==========
 if __name__ == "__main__":
