@@ -405,7 +405,7 @@ function RecorderPage() {
             className={`inline-block px-8 py-3 rounded-full text-white font-semibold shadow-lg transition transform hover:scale-105 ${
               callLoading || loading
                 ? "bg-gray-300 cursor-not-allowed"
-                : "bg-green-500 hover:bg-green-600" // Example: green color
+                : "bg-[#9076ff] hover:bg-[#4e398e]" // Example: green color
             }`}
           >
             {callLoading ? "Calling…" : "Call Agent"}
