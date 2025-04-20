@@ -44,7 +44,7 @@ const Navbar = () => {
                   className="text-[#9076ff] hover:text-purple-800 px-3 py-2 rounded-md transition
         duration-300"
                 >
-                  Recorder
+                  Compiler
                 </Link>
                 <Link
                   to="/profile"

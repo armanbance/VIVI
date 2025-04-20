@@ -2,6 +2,7 @@ import "../App.css";
 import { useState, useRef } from "react";
 import axios from "axios";
 import { useAuth0 } from "@auth0/auth0-react";
+import robot from "../assets/robot.png";
 
 function RecorderPage() {
   const [isRecording, setIsRecording] = useState(false);
@@ -285,9 +286,15 @@ function RecorderPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-tr from-purple-50 via-white to-blue-50 py-12 px-4">
+      <img
+        src={robot}
+        alt="robot"
+        className="fixed w-16 h-16 bottom-0 right-16 z-50"
+      />
+
       <div className="max-w-3xl mx-auto space-y-8">
         <h1 className="text-center text-3xl sm:text-4xl font-extrabold text-gray-900">
-          Audio Recorder
+          VIVI Compiler
         </h1>
 
         <div className="bg-white rounded-2xl shadow-xl p-6 space-y-6">
@@ -392,7 +399,7 @@ function RecorderPage() {
             className={`inline-block px-8 py-3 rounded-full text-white font-semibold shadow-lg transition transform hover:scale-105 ${
               !title || !(transcript || text) || loading || callLoading
                 ? "bg-gray-300 cursor-not-allowed"
-                : "bg-purple-600 hover:bg-purple-700" // Adjusted color for consistency
+                : "bg-[#9076ff] hover:bg-[#4e398e]" // Adjusted color for consistency
             }`}
           >
             {loading ? "Generating…" : "Generate Image"}

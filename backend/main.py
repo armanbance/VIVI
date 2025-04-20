@@ -40,13 +40,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+session_analytics = {
+    "total_words": 0,
+    "num_queries": 0
+}
+
 # ========== HELPER FUNCTIONS ==========
 
+def update_session_analytics(transcribed_text: str):
+    """Update total words and query count based on a new transcript."""
+    word_count = len(transcribed_text.split())
+    session_analytics["total_words"] += word_count
+    session_analytics["num_queries"] += 1
+    print(f"🧮 Updated analytics: {word_count} new words.")
 
 def is_looking_at_camera():
     gazing = 0
     not_gazing = 0
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(1)
 
     if not cap.isOpened():
         print("❌ Failed to open webcam.")
@@ -171,6 +182,20 @@ def start_session():
         "prompt": text,
         "image_url": image_url
     }
+
+
+@app.get("/session-analytics") 
+def get_session_analytics():
+    """Return the current analytics summary."""
+    total = session_analytics["total_words"]
+    queries = session_analytics["num_queries"]
+    avg = total / queries if queries > 0 else 0
+    return {
+        "total_words": total,
+        "num_queries": queries,
+        "avg_words_per_query": round(avg, 2)
+    }
+
 
 
 # == Generate Image ==
