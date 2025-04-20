@@ -61,7 +61,7 @@ def update_session_analytics(transcribed_text: str):
 def is_looking_at_camera():
     gazing = 0
     not_gazing = 0
-    cap = cv2.VideoCapture(1)
+    cap = cv2.VideoCapture(0)
 
     if not cap.isOpened():
         print("❌ Failed to open webcam.")
