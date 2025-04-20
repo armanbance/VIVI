@@ -15,6 +15,8 @@ load_dotenv()
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+from db import test_connection
+from routers import auth0_users
 app = FastAPI(title="HackDavis API")
 
 # ========== CORS CONFIG ==========
