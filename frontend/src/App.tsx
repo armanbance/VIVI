@@ -8,6 +8,7 @@ import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/Login";
 import RecorderPage from "./pages/RecorderPage";
 import ProfilePage from "./pages/ProfilePage";
+import ResearchPage from "./pages/ResearchPage";
 import Callback from "./pages/Callback";
 import Navbar from "./components/Navbar";
 
@@ -38,6 +39,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/callback" element={<Callback />} />
+        <Route path="/research" element={<ResearchPage />} />
         <Route
           path="/recorder"
           element={

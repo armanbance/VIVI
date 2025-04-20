@@ -85,7 +85,7 @@ const HomePage = () => {
         </div>
       </div>
       <div className="mt-32 mb-32" id="about">
-        <h1 className="text-center text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-gray-900">
+        <h1 className="mt-32 text-center text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-gray-900">
           About <span className="text-[#9076ff]">Us</span>
         </h1>
         <div className="flex flex-col md:flex-row items-start justify-between gap-12 mt-16 max-w-5xl mx-auto px-4">
@@ -100,7 +100,63 @@ const HomePage = () => {
             and pushing the boundaries of what's possible with machine learning
             and accessible design.
           </p>
-          <img src={groupPhoto} alt="Group Photo" className="rounded-lg w-full md:w-2/5 object-cover self-center" />
+          <img
+            src={groupPhoto}
+            alt="Group Photo"
+            className="rounded-lg w-full md:w-2/5 object-cover self-center"
+          />
+        </div>
+      </div>
+      <div className="mt-32 mb-32" id="research">
+        <h1 className="text-center text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-gray-900">
+          Research <span className="text-[#9076ff]">Summary</span>
+        </h1>
+        <div className="mt-16 max-w-8xl mx-auto px-4">
+          <p className="text-lg sm:text-xl text-gray-600 leading-relaxed">
+            Neurodivergent learners, particularly children with conditions like
+            autism spectrum disorder (ASD) and aphantasia, often face
+            significant challenges with traditional text-based learning.
+            Research shows that 65–80% of individuals with ASD experience
+            difficulties with imagination-based tasks, including reading
+            comprehension and mental imagery formation. Aphantasia, which
+            affects an estimated 3–5% of the population, further impedes a
+            learner's ability to visualize concepts or narratives. These
+            barriers can severely impact engagement, memory retention, and
+            self-expression when learning through books or lectures alone.
+            Meanwhile, comorbid conditions like ADHD contribute to attention
+            regulation difficulties, reducing time spent in productive
+            engagement and limiting a learner's ability to derive meaning from
+            static content.
+          </p>
+        </div>
+        <div className="mt-16 max-w-8xl mx-auto px-4">
+          <p className="text-lg sm:text-xl text-gray-600 leading-relaxed">
+            By transforming textual input into dynamic, personalized visual and
+            auditory content, our application VIVI bridges this critical
+            learning gap. Our solution leverages gaze detection to sense user
+            attention, OpenAI's Whisper and GPT models to transcribe and
+            interpret voice input, and DALL·E to generate customized
+            illustrations, all in real time. This multimodal approach enhances
+            comprehension by providing visual, oral, and interactive layers that
+            cater to a wider spectrum of cognitive processing styles.
+            Evidence-backed benefits of multisensory learning include 50% higher
+            recall rates, increased engagement, and improved emotional
+            connection to educational material, especially for neurodivergent
+            children. Our research-informed strategy ensures not only
+            inclusivity but also positions VIVI as a meaningful tool for
+            accessible, human-centered learning.
+          </p>
+        </div>
+        <div className="flex justify-center mt-8">
+          <Link
+            to="/research"
+            className="px-8 py-3 text-lg font-medium text-white bg-[#9076ff] hover:bg-[#4e398e] rounded-full shadow-lg transition-all duration-300"
+            onClick={() => {
+              window.scrollTo(0, 0);
+            }}
+          >
+            Read More
+          </Link>
         </div>
       </div>
     </div>

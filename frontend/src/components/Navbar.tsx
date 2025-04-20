@@ -20,7 +20,42 @@ const Navbar = () => {
     } else {
       const aboutSection = document.getElementById("about");
       if (aboutSection) {
-        aboutSection.scrollIntoView({ behavior: "smooth" });
+        // Add a small offset to account for navbar height
+        const navbarHeight = 64; // Approximate height of navbar (16 * 4 = 64px)
+        const elementPosition = aboutSection.getBoundingClientRect().top;
+        const offsetPosition =
+          elementPosition + window.pageYOffset - navbarHeight;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: "smooth",
+        });
+      }
+    }
+    setIsMenuOpen(false);
+  };
+
+  const scrollToResearch = () => {
+    if (location.pathname !== "/") {
+      navigate("/", { state: { scrollToResearch: true } });
+    } else {
+      const researchSection = document.getElementById("research");
+      if (researchSection) {
+        // Calculate a better vertical centering
+        const navbarHeight = 64; // Approximate height of navbar
+        const viewportHeight = window.innerHeight;
+        const elementHeight = researchSection.offsetHeight;
+        const elementPosition = researchSection.getBoundingClientRect().top;
+
+        // Calculate offset to center the element vertically, accounting for navbar
+        const centerOffset = (viewportHeight - elementHeight) / 2;
+        const offsetPosition =
+          elementPosition + window.pageYOffset - centerOffset - navbarHeight;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: "smooth",
+        });
       }
     }
     setIsMenuOpen(false);
@@ -30,7 +65,45 @@ const Navbar = () => {
     if (location.state?.scrollToAbout) {
       const aboutSection = document.getElementById("about");
       if (aboutSection) {
-        aboutSection.scrollIntoView({ behavior: "smooth" });
+        // Add a small delay to ensure DOM is ready
+        setTimeout(() => {
+          // Add a small offset to account for navbar height
+          const navbarHeight = 64; // Approximate height of navbar (16 * 4 = 64px)
+          const elementPosition = aboutSection.getBoundingClientRect().top;
+          const offsetPosition =
+            elementPosition + window.pageYOffset - navbarHeight;
+
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: "smooth",
+          });
+        }, 100);
+      }
+      // Clear the state after scrolling
+      navigate(location.pathname, { state: {}, replace: true });
+    }
+
+    if (location.state?.scrollToResearch) {
+      const researchSection = document.getElementById("research");
+      if (researchSection) {
+        // Add a small delay to ensure DOM is ready
+        setTimeout(() => {
+          // Calculate a better vertical centering
+          const navbarHeight = 64; // Approximate height of navbar
+          const viewportHeight = window.innerHeight;
+          const elementHeight = researchSection.offsetHeight;
+          const elementPosition = researchSection.getBoundingClientRect().top;
+
+          // Calculate offset to center the element vertically, accounting for navbar
+          const centerOffset = (viewportHeight - elementHeight) / 2;
+          const offsetPosition =
+            elementPosition + window.pageYOffset - centerOffset - navbarHeight;
+
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: "smooth",
+          });
+        }, 100);
       }
       // Clear the state after scrolling
       navigate(location.pathname, { state: {}, replace: true });
@@ -82,6 +155,12 @@ const Navbar = () => {
               className="text-[#9076ff] hover:text-purple-800 px-3 py-2 rounded-md transition duration-300"
             >
               About
+            </button>
+            <button
+              onClick={scrollToResearch}
+              className="text-[#9076ff] hover:text-purple-800 px-3 py-2 rounded-md transition duration-300"
+            >
+              Research
             </button>
             {isAuthenticated ? (
               <>
@@ -158,6 +237,13 @@ const Navbar = () => {
               className="w-full text-left text-[#9076ff] hover:text-purple-800 block px-3 py-2 rounded-md"
             >
               About
+            </button>
+
+            <button
+              onClick={scrollToResearch}
+              className="w-full text-left text-[#9076ff] hover:text-purple-800 block px-3 py-2 rounded-md"
+            >
+              Research
             </button>
 
             {!isAuthenticated ? (
