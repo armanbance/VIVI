@@ -15,6 +15,8 @@ function RecorderPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [callLoading, setCallLoading] = useState(false);
+  const [callMessage, setCallMessage] = useState("");
 
   const startRecording = async () => {
     try {
@@ -79,6 +81,33 @@ function RecorderPage() {
       setError("Error fetching image");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const callVoiceAgent = async () => {
+    setCallLoading(true);
+    setCallMessage("");
+    setError("");
+
+    try {
+      const response = await axios.post(
+        "https://095f-128-120-27-122.ngrok-free.app/outbound-call", // Replace with your current ngrok URL
+        {
+          prompt:
+            "Purpose: You are Chiller, a compassionate wellness check-in voice agent. Your role is to help users relax, center themselves, and feel supported through guided breathing exercises and mindfulness check-ins. Tasks: Greet the user and ask how they're feeling. Adapt your response based on their emotional state—if stressed, suggest a slowing down with a breathing exercise; if calm, invite them to celebrate the moment with a brief pause. Guide the user through a simple breathing exercise: instruct them to find a comfortable position, optionally close their eyes, and breathe in slowly (count \"1… 2… 3…\"), then exhale completely. Repeat once or twice. End with gentle encouragement and ask how they feel afterward. Guidelines: Maintain a calm, patient, and warm tone. Use clear, simple, and concise instructions. Focus on mindfulness and self-care. If you're unsure of the user's response, ask for clarification politely.",
+          first_message:
+            "Hi! I'm Chiller from Chill Guy AI. How are you doing today?",
+          number: "+17078169356", // Replace with an actual phone number or add a phone input field
+        }
+      );
+
+      setCallMessage("Call initiated successfully!");
+      console.log("Call initiated:", response.data);
+    } catch (error) {
+      console.error("Error initiating call:", error);
+      setError("Failed to initiate call. Please check console for details.");
+    } finally {
+      setCallLoading(false);
     }
   };
 
@@ -167,7 +196,7 @@ function RecorderPage() {
         </div>
 
         {/* Generate button */}
-        <div className="text-center">
+        {/* <div className="text-center">
           <button
             onClick={() => generateImage(title, text)}
             disabled={!title || !text || loading}
@@ -179,7 +208,42 @@ function RecorderPage() {
           >
             {loading ? "Generating…" : "Generate Image"}
           </button>
+        </div> */}
+
+        {/* Generate button and Call Voice Agent button */}
+        <div className="text-center flex justify-center space-x-4">
+          <button
+            onClick={() => generateImage(title, text)}
+            disabled={!title || !text || loading}
+            className={`inline-block px-10 py-3 rounded-full text-white font-semibold shadow-lg transition transform hover:scale-105 ${
+              !title || !text
+                ? "bg-gray-300 cursor-not-allowed"
+                : "bg-purple-600 hover:bg-purple-700"
+            }`}
+          >
+            {loading ? "Generating…" : "Generate Image"}
+          </button>
+
+          <button
+            onClick={callVoiceAgent}
+            disabled={callLoading}
+            className={`inline-block px-10 py-3 rounded-full text-white font-semibold shadow-lg transition transform hover:scale-105 
+              ${
+                callLoading
+                  ? "bg-gray-300 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700"
+              }`}
+          >
+            {callLoading ? "Calling…" : "Call Voice Agent"}
+          </button>
         </div>
+
+        {/* Call message */}
+        {callMessage && (
+          <p className="text-center text-green-600 font-medium">
+            {callMessage}
+          </p>
+        )}
 
         {/* Generated image */}
         {imageUrl && (
