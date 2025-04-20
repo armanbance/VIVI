@@ -19,6 +19,8 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 app = FastAPI(title="HackDavis API")
 
+FREE_PIK = os.getenv("FREE_PIK")
+
 # ========== CORS CONFIG ==========
 app.add_middleware(
     CORSMiddleware,
@@ -114,6 +116,7 @@ def is_looking_at_camera():
 def monitor_gaze():
     print("📷 Starting gaze monitoring loop...")
 
+
     while True:
         result = is_looking_at_camera()
         if result:
@@ -170,7 +173,9 @@ def generate_image(title: str, transcript: str = None):
     try:
         response = client.images.generate(
             model="dall-e-3",
-            prompt="Generate a simple, cartoonish illustration inspired by the book title: " + title + ". Create an image that represents the key themes and atmosphere from this text: " + transcript + ". The style should be colorful, minimalistic, and suitable for a children's book or storybook.",
+            
+            prompt = 
+                "Create a detailed and imaginative illustration in the art style of " + title + "The image should visually represent the following narration or story passage: " +  transcript + ". Make it easy to understand, emotionally engaging, and helpful for someone who has difficulty visualizing mental images.",
             n=1,
             size="1024x1024"
         )

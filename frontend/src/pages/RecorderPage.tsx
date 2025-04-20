@@ -19,32 +19,24 @@ function RecorderPage() {
 
   const startRecording = async () => {
     try {
-      // Reset recording state
       setAudioBlob(null);
       setTranscript(null);
       setText("");
       setError("");
       audioChunksRef.current = [];
 
-      // Request access to the microphone
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      // Initialize the MediaRecorder
       const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
       mediaRecorderRef.current = recorder;
 
       recorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
-          console.log("Audio chunk added, size:", event.data.size);
         }
       };
 
       recorder.onstop = async () => {
-        console.log("Recording stopped, processing audio chunks...");
-
         if (audioChunksRef.current.length === 0) {
-          console.error("No audio chunks recorded");
           setError(
             "No audio was recorded. Please try again and speak into your microphone."
           );
@@ -55,14 +47,10 @@ function RecorderPage() {
         const audioBlob = new Blob(audioChunksRef.current, {
           type: "audio/mp3",
         });
-
-        console.log("Audio blob created, size:", audioBlob.size);
-
         const audioUrl = URL.createObjectURL(audioBlob);
         setAudioURL(audioUrl);
         setAudioBlob(audioBlob);
 
-        // Only proceed with transcription if we have audio data
         if (audioBlob.size > 0) {
           await transcribeAudio(audioBlob);
         } else {
@@ -71,36 +59,30 @@ function RecorderPage() {
         }
       };
 
-      // Start recording with 10ms timeslice to get data frequently
       recorder.start(10);
       setIsRecording(true);
-      console.log("Recording started");
-
-      return true; // Indicate success
+      return true;
     } catch (error) {
-      console.error("Error accessing microphone:", error);
       setError(
         "Could not access microphone. Please check permissions and try again."
       );
       setLoading(false);
-      return false; // Indicate failure
+      return false;
     }
   };
 
   const stopRecording = () => {
-    console.log("Stopping recording...");
-
+    console.log("Stopping recording");
     if (!mediaRecorderRef.current) {
       console.warn("No MediaRecorder exists to stop");
       setIsRecording(false);
       return;
     }
 
-    // Only call stop() if the recorder is actually recording
     if (mediaRecorderRef.current.state !== "inactive") {
       try {
+        console.log("Calling stop() on MediaRecorder");
         mediaRecorderRef.current.stop();
-        console.log("MediaRecorder stopped");
       } catch (err) {
         console.error("Error stopping MediaRecorder:", err);
       }
@@ -108,7 +90,6 @@ function RecorderPage() {
       console.warn("MediaRecorder already inactive");
     }
 
-    // Stop all tracks regardless of recorder state
     try {
       mediaRecorderRef.current?.stream?.getTracks().forEach((track) => {
         track.stop();
@@ -122,21 +103,20 @@ function RecorderPage() {
   };
 
   const transcribeAudio = async (blob = audioBlob) => {
-    // Check if audio blob exists before sending
+    console.log("Starting transcription with blob size:", blob?.size);
     if (!blob) {
-      console.error("No audio recorded");
+      console.error("No audio blob to transcribe");
       setError("No audio recorded. Please try again.");
       setLoading(false);
-      return;
+      return null;
     }
 
     try {
-      console.log("Starting transcription of audio blob size:", blob.size);
-
-      // Create FormData to send audio file
       const formData = new FormData();
       formData.append("audio", blob, "recording.mp3");
-      const res = await axios.post(
+      console.log("Sending audio for transcription, blob size:", blob.size);
+
+      const response = await axios.post(
         "http://localhost:8000/transcribe",
         formData
       );
@@ -145,18 +125,17 @@ function RecorderPage() {
         throw new Error("Transcription failed - no response data");
       }
 
-      // Parse transcription result
       const data = response.data;
-      console.log("Transcription successful:", data.text);
+      console.log("Transcription response:", data);
 
       if (data.text && data.text.trim() !== "") {
         const transcribedText = data.text.trim();
+        console.log("Setting transcript to:", transcribedText);
         setTranscript(transcribedText);
         setText(transcribedText);
-
-        // Store in local variable to ensure it's available for image generation
         return transcribedText;
       } else {
+        console.error("Transcription returned empty text");
         setError(
           "Transcription returned empty text. Please speak louder or clearer."
         );
@@ -164,7 +143,7 @@ function RecorderPage() {
         return null;
       }
     } catch (error) {
-      console.error("Error transcribing audio:", error);
+      console.error("Error during transcription:", error);
       setError("Failed to transcribe audio. Please try again.");
       setLoading(false);
       return null;
@@ -195,47 +174,98 @@ function RecorderPage() {
     setError("");
 
     try {
-      // Start recording audio first - recording will collect audio chunks
+      // Clear previous transcript before starting new recording
+      setTranscript(null);
+      setText("");
+
       const recordingStarted = await startRecording();
+      if (!recordingStarted) throw new Error("Failed to start recording");
 
-      if (!recordingStarted) {
-        throw new Error("Failed to start recording");
-      }
-
-      // Then start gaze tracking - this will block until the user looks away
       const gazeResponse = await axios.get("http://localhost:8000/gaze-track");
-      console.log("Gaze tracking complete:", gazeResponse.data);
+      console.log("Gaze tracking complete, stopping recording");
 
-      // Stop recording after gaze tracking completes
-      stopRecording();
+      // Create a promise that will resolve when transcription is complete
+      const transcriptionPromise = new Promise<string | null>((resolve) => {
+        // First stop the recording
+        stopRecording();
 
-      // Give some time for the audio processing and transcription to complete
-      setTimeout(() => {
-        console.log("Checking for transcript to generate image...");
-        console.log("Current title:", title);
-        console.log("Current text state:", text);
+        // Check transcript state periodically
+        let attempts = 0;
+        const maxAttempts = 20; // Check for up to 20 seconds
 
-        if (title && (text || transcript)) {
-          // Use transcript as fallback if text is not available
-          const contentToUse = text || transcript || "";
-          console.log("Generating image with content:", contentToUse);
-          generateImage(title, contentToUse);
-        } else {
-          console.log("Current transcript:", transcript);
-          console.log("Current text:", text);
-          setError("Missing title or transcript. Make sure to speak clearly.");
-          setLoading(false);
-        }
-      }, 8000); // Extended timeout to ensure transcription completes
+        const checkTranscription = () => {
+          attempts++;
+          console.log(
+            `Checking transcript (attempt ${attempts}/${maxAttempts}) - text state:`,
+            text
+          );
+          console.log(`Transcript state:`, transcript);
+
+          // React state updates are asynchronous, so we need to get the current values directly
+          const currentText = document
+            .querySelector(".p-3.bg-gray-100")
+            ?.textContent?.trim();
+          console.log("Transcript from DOM:", currentText);
+
+          if (text || transcript || currentText) {
+            // We have a transcript, resolve with whichever value is available
+            const finalTranscript = text || transcript || currentText || "";
+            console.log("Found transcript:", finalTranscript);
+            resolve(finalTranscript);
+          } else if (attempts < maxAttempts) {
+            // No transcript yet, wait a bit longer
+            setTimeout(checkTranscription, 1000);
+          } else {
+            // Reached max attempts, resolve with empty string to avoid null errors
+            console.warn("Max attempts reached without finding transcript");
+            resolve("");
+          }
+        };
+
+        // Start checking after a short delay to allow the MediaRecorder.onstop to fire
+        setTimeout(checkTranscription, 2000);
+      });
+
+      // Wait for the transcription to complete
+      const transcriptResult = await transcriptionPromise;
+
+      // Double-check the transcript one more time from React state and DOM
+      const currentText = text || transcript;
+      const domTranscript = document
+        .querySelector(".p-3.bg-gray-100")
+        ?.textContent?.trim();
+
+      // Use whatever transcript we can find, preferring React state over DOM
+      const finalTranscript =
+        currentText || transcriptResult || domTranscript || "";
+
+      console.log("Final transcript to use:", finalTranscript);
+      console.log("Title:", title);
+
+      if (title && finalTranscript) {
+        console.log("Generating image with title and transcript:", {
+          title,
+          transcript: finalTranscript,
+        });
+        generateImage(title, finalTranscript);
+      } else if (title) {
+        // If we have a title but no transcript, generate with just the title
+        console.log("Generating with title only:", title);
+        generateImage(title, title); // Use the title as the transcript
+        setError("No transcript detected, using title as prompt");
+      } else {
+        console.error("Missing data for image generation:", {
+          title,
+          transcript: finalTranscript,
+        });
+        setError("Missing title. Please enter a book title.");
+        setLoading(false);
+      }
     } catch (error) {
-      console.error("Error during recording with gaze tracking:", error);
+      console.error("Error during gaze tracking process:", error);
       setError("Error during recording process");
       setLoading(false);
-
-      // Make sure to stop recording if there was an error
-      if (isRecording) {
-        stopRecording();
-      }
+      if (isRecording) stopRecording();
     }
   };
 
@@ -250,7 +280,6 @@ function RecorderPage() {
         </h1>
 
         <div className="bg-white rounded-2xl shadow-xl p-6 space-y-6">
-          {/* Title input */}
           <div>
             <label
               htmlFor="title"
@@ -268,51 +297,71 @@ function RecorderPage() {
             />
           </div>
 
-          {/* Record controls */}
           <div className="flex flex-col items-center space-y-4">
             <p className="text-gray-600">
               {isRecording
                 ? "Recording… click the button to stop"
                 : "Click to start recording"}
             </p>
-            {isRecording ? (
+            <div className="flex space-x-4">
+              {isRecording ? (
+                <button
+                  onClick={stopRecording}
+                  className="w-16 h-16 flex items-center justify-center rounded-full bg-red-500 hover:bg-red-600 transition transform hover:scale-110 animate-pulse"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <rect x="6" y="6" width="12" height="12" rx="2" />
+                  </svg>
+                </button>
+              ) : (
+                <button
+                  onClick={startRecording}
+                  className="w-16 h-16 flex items-center justify-center rounded-full bg-[#9076ff] hover:bg-[#4e398e] transition transform hover:scale-110"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="22" />
+                  </svg>
+                </button>
+              )}
               <button
-                onClick={stopRecording}
-                className="w-16 h-16 flex items-center justify-center rounded-full bg-red-500 hover:bg-red-600 transition transform hover:scale-110 animate-pulse"
+                onClick={recordWithGazeTracking}
+                className="flex items-center justify-center w-16 h-16 rounded-full bg-[#9076ff] hover:bg-[#4e398e] text-white transition-all duration-300 hover:scale-110"
+                aria-label="Start recording with gaze tracking"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6 text-white"
-                  fill="none"
+                  width="24"
+                  height="24"
                   viewBox="0 0 24 24"
+                  fill="none"
                   stroke="currentColor"
-                  strokeWidth={2}
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
-                  <rect x="6" y="6" width="12" height="12" rx="2" />
+                  <circle cx="12" cy="12" r="10" />
+                  <circle cx="12" cy="12" r="3" />
                 </svg>
               </button>
-            ) : (
-              <button
-                onClick={startRecording}
-                className="w-16 h-16 flex items-center justify-center rounded-full bg-purple-600 hover:bg-purple-700 transition transform hover:scale-110"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6 text-white"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                  <line x1="12" y1="19" x2="12" y2="22" />
-                </svg>
-              </button>
-            )}
+            </div>
           </div>
 
-          {/* Transcript box */}
           {transcript && (
             <div>
               <h3 className="text-gray-700 mb-1 font-medium">Transcript</h3>
@@ -323,7 +372,6 @@ function RecorderPage() {
           )}
         </div>
 
-        {/* Generate button */}
         <div className="text-center">
           <button
             onClick={() => generateImage(title, text)}
@@ -331,14 +379,13 @@ function RecorderPage() {
             className={`inline-block px-10 py-3 rounded-full text-white font-semibold shadow-lg transition transform hover:scale-105 ${
               !title || !text
                 ? "bg-gray-300 cursor-not-allowed"
-                : "bg-purple-600 hover:bg-purple-700"
+                : "bg-[#9076ff] hover:bg-[#4e398e]"
             }`}
           >
             {loading ? "Generating…" : "Generate Image"}
           </button>
         </div>
 
-        {/* Generated image */}
         {imageUrl && (
           <div className="space-y-4">
             <h3 className="text-center text-xl font-medium text-gray-900">

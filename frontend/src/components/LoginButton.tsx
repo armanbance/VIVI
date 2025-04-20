@@ -8,15 +8,15 @@ const LoginButton = ({ className = "" }) => {
     <button
       onClick={() => loginWithRedirect()}
       className={`
-        bg-purple-600 
-        hover:bg-purple-700 
-        text-white 
-        font-semibold 
-        px-6 py-3 
-        rounded-full 
-        shadow-lg 
-        transition 
-        transform hover:scale-105 
+        bg-[#9076ff]
+        hover:bg-[#4e398e]
+        text-white
+        font-semibold
+        px-6 py-3
+        rounded-full
+        shadow-lg
+        transition
+        duration-300
         ${className}
       `}
     >
