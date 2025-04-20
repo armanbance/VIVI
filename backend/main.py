@@ -7,6 +7,7 @@ import mediapipe as mp
 import os
 from dotenv import load_dotenv
 import tempfile
+from routers import auth0_users
 
 
 # ========== CONFIG ==========
@@ -16,8 +17,10 @@ load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 from db import test_connection
-from routers import auth0_users
 app = FastAPI(title="HackDavis API")
+
+# Include routers
+app.include_router(auth0_users.router)
 
 # ========== CORS CONFIG ==========
 app.add_middleware(
