@@ -17,21 +17,32 @@ class Auth0UserResponse(Auth0UserCreate):
 
 @router.post("/", response_model=Auth0UserResponse, status_code=201)
 async def sync_auth0_user(user: Auth0UserCreate):
-    # Check if user with this auth0_id already exists
-    existing_user = await find_document("users", {"auth0_id": user.auth0_id})
-    
-    if existing_user:
-        # Update existing user
+    try:
+        # Log the request for debugging
+        print(f"Received user sync request: {user}")
+        
+        # Check if user with this auth0_id already exists
+        existing_user = await find_document("users", {"auth0_id": user.auth0_id})
+        
+        if existing_user:
+            # Update existing user
+            user_dict = user.dict()
+            await update_document("users", {"auth0_id": user.auth0_id}, user_dict)
+            return {**user_dict, "id": str(existing_user["_id"])}
+        
+        # Create new user document
         user_dict = user.dict()
-        await update_document("users", {"auth0_id": user.auth0_id}, user_dict)
-        return {**user_dict, "id": str(existing_user["_id"])}
-    
-    # Create new user document
-    user_dict = user.dict()
-    user_id = await insert_document("users", user_dict)
-    
-    # Return the created user
-    return {**user_dict, "id": str(user_id)}
+        user_id = await insert_document("users", user_dict)
+        
+        # Return the created user
+        return {**user_dict, "id": str(user_id)}
+    except Exception as e:
+        # Properly handle and log errors
+        print(f"Error in sync_auth0_user: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to sync user: {str(e)}"
+        )
 
 @router.get("/by-email/{email}", response_model=Auth0UserResponse)
 async def get_user_by_email(email: str):

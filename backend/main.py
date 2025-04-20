@@ -10,6 +10,9 @@ import tempfile
 from db import test_connection
 from routers import auth0_users
 from pydantic import BaseModel
+from fastapi.encoders import jsonable_encoder
+from bson import ObjectId
+from json import JSONEncoder
 
 
 # ========== CONFIG ==========
@@ -227,6 +230,18 @@ async def transcribe_audio(audio: UploadFile = File(...)):
         )
 
 # ========== DEV SERVER ==========
+app.include_router(auth0_users.router)
+
+# Custom JSON encoder for MongoDB ObjectID
+class CustomJSONEncoder(JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, ObjectId):
+            return str(obj)
+        return super().default(obj)
+
+# Configure FastAPI to use the custom encoder
+app.json_encoder = CustomJSONEncoder
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

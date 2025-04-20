@@ -17,8 +17,8 @@ export const useUserSync = () => {
         // Get the access token
         const token = await getAccessTokenSilently();
 
-        // Send user data to backend
-        const response = await fetch(`${API_URL}/auth0-users`, {
+        // Fix the endpoint URL to match the router prefix exactly
+        const response = await fetch(`${API_URL}/auth0-users/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -28,16 +28,32 @@ export const useUserSync = () => {
             email: user.email,
             name: user.name,
             picture: user.picture,
-            auth0_id: user.sub, // Auth0 user ID
+            auth0_id: user.sub,
           }),
         });
 
+        // Add better error handling
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.detail || "Failed to sync user data");
+          const text = await response.text();
+          let errorMessage = "Failed to sync user data";
+          try {
+            // Try to parse as JSON if possible
+            const errorData = JSON.parse(text);
+            errorMessage = errorData.detail || errorMessage;
+          } catch (e) {
+            // If it's not JSON, use the text directly
+            errorMessage = text || errorMessage;
+          }
+          throw new Error(errorMessage);
         }
 
-        const userData = await response.json();
+        // Get response data - with error handling
+        const responseText = await response.text();
+        if (!responseText) {
+          throw new Error("Empty response from server");
+        }
+        
+        const userData = JSON.parse(responseText);
         setIsUserSynced(true);
         return userData;
       } catch (error) {
