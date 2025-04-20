@@ -4,6 +4,15 @@ import LogoutButton from "../components/LogoutButton";
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import axios from "axios";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from "recharts";
 
 interface SessionAnalytics {
   total_words: number;
@@ -37,7 +46,6 @@ const ProfilePage = () => {
           setIsLoadingAnalytics(false);
         }
       };
-
       fetchAnalytics();
     } else {
       setIsLoadingAnalytics(false);

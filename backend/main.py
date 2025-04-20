@@ -241,6 +241,8 @@ async def transcribe_audio(audio: UploadFile = File(...)):
 
         print(transcription.text)
 
+        update_session_analytics(transcription.text)
+
         # Return the transcription text
         return {"text": transcription.text}
 
