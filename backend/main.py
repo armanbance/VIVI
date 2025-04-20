@@ -29,11 +29,10 @@ app.add_middleware(
 # ========== HELPER FUNCTIONS ==========
 
 
-
 def is_looking_at_camera():
     gazing = 0
     not_gazing = 0
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(1)
 
     if not cap.isOpened():
         print("❌ Failed to open webcam.")
@@ -52,7 +51,7 @@ def is_looking_at_camera():
     looking = False
     frames_checked = 0
 
-    for i in range(40):  # ~5 seconds at 20 FPS
+    for i in range(10):  # ~5 seconds at 20 FPS
         ret, frame = cap.read()
         if not ret:
             print(f"[Frame {i}] ❌ Frame grab failed.")
@@ -79,7 +78,7 @@ def is_looking_at_camera():
                 center = (x1 + x2) / 2
                 delta = abs(cx - center)
                 print(f"   ➤ Eye delta: {delta:.4f}")
-                return delta < 0.002  # 🔥 More strict now!
+                return delta < 0.004  # 🔥 More strict now!
 
             left_ok = is_eye_centered(LEFT_EYE, LEFT_IRIS)
             right_ok = is_eye_centered(RIGHT_EYE, RIGHT_IRIS)
@@ -96,7 +95,6 @@ def is_looking_at_camera():
             not_gazing += 1
 
 
-        time.sleep(0.05)
 
     if gazing >= not_gazing:
         looking = True
@@ -110,6 +108,17 @@ def is_looking_at_camera():
     print(f"🧠 Final Gaze Verdict: {'LOOKING AT CAMERA' if looking else 'NOT looking'}")
 
     return looking
+
+def monitor_gaze():
+    print("📷 Starting gaze monitoring loop...")
+
+    while True:
+        result = is_looking_at_camera()
+        if result:
+            print("👋 User is no longer looking at the camera.")
+            break
+        else:
+            print("👁️ Still looking. Checking again in 3 seconds...\n")
 
 
 
@@ -128,6 +137,11 @@ def health_check():
 def look_test():
     result = is_looking_at_camera()
     return {"looking_at_camera": result}
+
+@app.get("/gaze-track")
+def look_test():
+    monitor_gaze()
+    return {"message": "Gaze tracking complete"}
 
 
 @app.post("/start-session")
