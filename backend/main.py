@@ -42,7 +42,8 @@ app.add_middleware(
 
 session_analytics = {
     "total_words": 0,
-    "num_queries": 0
+    "num_queries": 0,
+    "dictlist": []
 }
 
 # ========== HELPER FUNCTIONS ==========
@@ -52,6 +53,7 @@ def update_session_analytics(transcribed_text: str):
     word_count = len(transcribed_text.split())
     session_analytics["total_words"] += word_count
     session_analytics["num_queries"] += 1
+    session_analytics["dictlist"].append({"query": session_analytics["num_queries"], "words": word_count})
     print(f"🧮 Updated analytics: {word_count} new words.")
 
 def is_looking_at_camera():
@@ -193,7 +195,8 @@ def get_session_analytics():
     return {
         "total_words": total,
         "num_queries": queries,
-        "avg_words_per_query": round(avg, 2)
+        "avg_words_per_query": round(avg, 2),
+        "dictlist": session_analytics["dictlist"]
     }
 
 

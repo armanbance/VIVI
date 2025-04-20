@@ -66,7 +66,7 @@ const HomePage = () => {
             <div className="space-y-4 flex flex-col items-center">
               <Link
                 to="/login"
-                className="inline-block px-10 py-4 text-lg font-semibold text-white bg-[#9076ff] hover:bg-[#4e398e] rounded-full shadow-lg transition duration-300"
+                className="inline-block px-10 py-4 text-lg font-semibold text-white bg-[#9076ff] hover:bg-[#4e398e] rounded-full shadow-lg transition duration-300 mb-4"
               >
                 Get Started
               </Link>

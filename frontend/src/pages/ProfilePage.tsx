@@ -18,6 +18,7 @@ interface SessionAnalytics {
   total_words: number;
   num_queries: number;
   avg_words_per_query: number;
+  dictlist: any[];
 }
 
 const ProfilePage = () => {
@@ -78,6 +79,17 @@ const ProfilePage = () => {
     );
   }
 
+  const Chart = ({ data }: { data: any[] }) => (
+    <LineChart width={500} height={300} data={data}>
+      <CartesianGrid strokeDasharray="3 3" />
+      <XAxis dataKey="query" />
+      <YAxis />
+      <Tooltip />
+      <Legend />
+      <Line type="monotone" dataKey="words" stroke="#8884d8" />
+    </LineChart>
+  );
+
   return (
     <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
@@ -135,6 +147,10 @@ const ProfilePage = () => {
             )}
           </div>
 
+          <div className="flex justify-center mb-8">
+            <Chart data={analyticsData?.dictlist || []} />
+          </div>
+
           <div className="flex justify-center gap-4 mb-8">
             <Link
               to="/"
@@ -144,7 +160,7 @@ const ProfilePage = () => {
             </Link>
             <Link
               to="/recorder"
-              className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition duration-150 ease-in-out shadow-sm"
+              className="px-6 py-2 bg-gray-200 text-gray-800 hover:bg-gray-300 font-medium rounded-lg hover:bg-[#4e398e] transition duration-150 ease-in-out shadow-sm"
             >
               Go to Recorder
             </Link>
