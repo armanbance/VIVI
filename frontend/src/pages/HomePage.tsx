@@ -40,20 +40,6 @@ const HomePage = () => {
           </h1>
 
           {/* — badges under the heading — */}
-          <div className="mt-6 flex justify-center space-x-4">
-            <span className="inline-flex items-center px-3 py-1 bg-white rounded-full shadow">
-              <span className="text-yellow-400 mr-2">✨</span>
-              <span className="text-sm font-medium text-gray-700">
-                AI-powered
-              </span>
-            </span>
-            <span className="inline-flex items-center px-3 py-1 bg-white rounded-full shadow">
-              <span className="text-blue-400 mr-2">🖼️</span>
-              <span className="text-sm font-medium text-gray-700">
-                Audio-to-Image
-              </span>
-            </span>
-          </div>
 
           <p className="mt-6 max-w-xl mx-auto text-lg sm:text-xl text-gray-600">
             Your AI‑powered audio‑to‑image book companion
@@ -89,6 +75,15 @@ const HomePage = () => {
               </p>
             </div>
           )}
+        </div>
+        <div className="rounded-full max-w-96 p-1 bg-gradient-to-r from-[#9076ff] to-[#4e398e] hover:from-[#4e398e] hover:to-[#9076ff] transition duration-300 mx-auto">
+          <a
+            href="/files/vivi-chrome.zip"
+            download="vivi-chrome.zip"
+            className="block px-5 py-4 text-lg font-semibold text-[#4e398e] bg-white rounded-full shadow-lg hover:text-[#9076ff] transition text-center transition duration-300"
+          >
+            Download Our Chrome Extension!
+          </a>
         </div>
       </div>
     </div>

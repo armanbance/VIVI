@@ -240,7 +240,6 @@ function RecorderPage() {
       if (isRecording) {
         stopRecording();
       }
-    } finally {
     }
   };
 
