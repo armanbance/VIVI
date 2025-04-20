@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 import tempfile
 from db import test_connection
 from routers import auth0_users
+from pydantic import BaseModel
 
 
 # ========== CONFIG ==========
@@ -20,6 +21,12 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 app = FastAPI(title="HackDavis API")
 
 FREE_PIK = os.getenv("FREE_PIK")
+
+# ========== Pydantic Models ==========
+class GenerateImageRequest(BaseModel):
+    title: str
+    transcript: str | None = None
+
 
 # ========== CORS CONFIG ==========
 app.add_middleware(
@@ -165,24 +172,24 @@ def start_session():
 
 # == Generate Image ==
 
-@app.get("/generate-image")
-def generate_image(title: str, transcript: str = None):
-    print(title, ":", transcript)
-    if transcript is None:
-        return {"message": "No audio"}
+@app.post("/generate-image")
+def generate_image(request_body: GenerateImageRequest):
+    print(request_body.title, ":", request_body.transcript)
+    if request_body.transcript is None:
+        raise HTTPException(status_code=400, detail="Transcript is required")
     try:
         response = client.images.generate(
             model="dall-e-3",
             
             prompt = 
-                "Create a detailed and imaginative illustration in the art style of " + title + "The image should visually represent the following narration or story passage: " +  transcript + ". Make it easy to understand, emotionally engaging, and helpful for someone who has difficulty visualizing mental images.",
+                "Create a detailed and imaginative illustration in the art style of " + request_body.title + "The image should visually represent the following narration or story passage: " +  request_body.transcript + ". Make it easy to understand, emotionally engaging, and helpful for someone who has difficulty visualizing mental images.",
             n=1,
             size="1024x1024"
         )
         image_url = response.data[0].url
         return {"image_url": image_url}
     except Exception as e:
-        return {"error": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))
 
 # == Transcribe ==
 

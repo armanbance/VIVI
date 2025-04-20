@@ -14,8 +14,9 @@ function RecorderPage() {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [imageUrl, setImageUrl] = useState(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [gazeTrack, setGazeTrack] = useState(null);
+  const generateButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const startRecording = async () => {
     try {
@@ -52,7 +53,13 @@ function RecorderPage() {
         setAudioBlob(audioBlob);
 
         if (audioBlob.size > 0) {
-          await transcribeAudio(audioBlob);
+          const transcript = await transcribeAudio(audioBlob);
+          if (transcript) {
+            setTranscript(transcript);
+            setText(transcript);
+          }
+          generateImage(title, transcript);
+          return transcript;
         } else {
           setError("Recording was too quiet. Please try again.");
           setLoading(false);
@@ -73,6 +80,8 @@ function RecorderPage() {
 
   const stopRecording = () => {
     console.log("Stopping recording");
+    setText("");
+    setTranscript("");
     if (!mediaRecorderRef.current) {
       console.warn("No MediaRecorder exists to stop");
       setIsRecording(false);
@@ -130,7 +139,7 @@ function RecorderPage() {
 
       if (data.text && data.text.trim() !== "") {
         const transcribedText = data.text.trim();
-        console.log("Setting transcript to:", transcribedText);
+        console.log("HAHAHAHAHAHHA:", transcribedText);
         setTranscript(transcribedText);
         setText(transcribedText);
         return transcribedText;
@@ -150,122 +159,88 @@ function RecorderPage() {
     }
   };
 
-  const generateImage = async (title: string, transcript: string) => {
+  const generateImage = async (titleValue: string, transcriptValue: string) => {
     setLoading(true);
     setError("");
+    setImageUrl(null);
+    console.log(
+      `Generating image for title: "${titleValue}" and transcript: "${transcriptValue}"`
+    );
     try {
-      const res = await fetch(
-        `http://localhost:8000/generate-image?title=${encodeURIComponent(
-          title
-        )}&transcript=${encodeURIComponent(transcript)}`
+      const response = await axios.post<{ image_url?: string }>(
+        "http://localhost:8000/generate-image",
+        {
+          title: titleValue,
+          transcript: transcriptValue,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
       );
-      const data = await res.json();
-      if (data.image_url) setImageUrl(data.image_url);
-      else setError("Failed to generate image");
-    } catch {
-      setError("Error fetching image");
+
+      const data = response.data;
+      if (data.image_url) {
+        setImageUrl(data.image_url);
+        console.log("Image generated successfully:", data.image_url);
+      } else {
+        console.error(
+          "Failed to generate image - no image_url in response:",
+          data
+        );
+        setError(
+          "Failed to generate image. The server didn't provide an image URL."
+        );
+      }
+    } catch (err) {
+      console.error("Error fetching image:", err);
+      if (axios.isAxiosError(err)) {
+        setError(
+          `Error generating image: ${err.response?.data?.detail || err.message}`
+        );
+      } else {
+        setError("An unexpected error occurred while generating the image.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const recordWithGazeTracking = async () => {
+    setText("");
+    setTranscript("");
+    setImageUrl(null);
+
+    const recordingStarted = await startRecording();
+    if (!recordingStarted) {
+      return;
+    }
+
     setLoading(true);
     setError("");
-
     try {
-      // Clear previous transcript before starting new recording
-      setTranscript(null);
-      setText("");
-
-      const recordingStarted = await startRecording();
-      if (!recordingStarted) throw new Error("Failed to start recording");
-
-      const gazeResponse = await axios.get("http://localhost:8000/gaze-track");
-      console.log("Gaze tracking complete, stopping recording");
-
-      // Create a promise that will resolve when transcription is complete
-      const transcriptionPromise = new Promise<string | null>((resolve) => {
-        // First stop the recording
-        stopRecording();
-
-        // Check transcript state periodically
-        let attempts = 0;
-        const maxAttempts = 20; // Check for up to 20 seconds
-
-        const checkTranscription = () => {
-          attempts++;
-          console.log(
-            `Checking transcript (attempt ${attempts}/${maxAttempts}) - text state:`,
-            text
-          );
-          console.log(`Transcript state:`, transcript);
-
-          // React state updates are asynchronous, so we need to get the current values directly
-          const currentText = document
-            .querySelector(".p-3.bg-gray-100")
-            ?.textContent?.trim();
-          console.log("Transcript from DOM:", currentText);
-
-          if (text || transcript || currentText) {
-            // We have a transcript, resolve with whichever value is available
-            const finalTranscript = text || transcript || currentText || "";
-            console.log("Found transcript:", finalTranscript);
-            resolve(finalTranscript);
-          } else if (attempts < maxAttempts) {
-            // No transcript yet, wait a bit longer
-            setTimeout(checkTranscription, 1000);
-          } else {
-            // Reached max attempts, resolve with empty string to avoid null errors
-            console.warn("Max attempts reached without finding transcript");
-            resolve("");
-          }
-        };
-
-        // Start checking after a short delay to allow the MediaRecorder.onstop to fire
-        setTimeout(checkTranscription, 2000);
-      });
-
-      // Wait for the transcription to complete
-      const transcriptResult = await transcriptionPromise;
-
-      // Double-check the transcript one more time from React state and DOM
-      const currentText = text || transcript;
-      const domTranscript = document
-        .querySelector(".p-3.bg-gray-100")
-        ?.textContent?.trim();
-
-      // Use whatever transcript we can find, preferring React state over DOM
-      const finalTranscript =
-        currentText || transcriptResult || domTranscript || "";
-
-      console.log("Final transcript to use:", finalTranscript);
-      console.log("Title:", title);
-
-      if (title && finalTranscript) {
-        console.log("Generating image with title and transcript:", {
-          title,
-          transcript: finalTranscript,
-        });
-        generateImage(title, finalTranscript);
-      } else if (title) {
-        // If we have a title but no transcript, generate with just the title
-        console.log("Generating with title only:", title);
-        generateImage(title, title); // Use the title as the transcript
-        setError("No transcript detected, using title as prompt");
-      } else {
-        console.error("Missing data for image generation:", {
-          title,
-          transcript: finalTranscript,
-        });
-        setError("Missing title. Please enter a book title.");
-        setLoading(false);
+      const res = await fetch("http://localhost:8000/gaze-track");
+      if (!res.ok) {
+        const errorData = await res
+          .json()
+          .catch(() => ({ detail: "Unknown gaze tracking error" }));
+        throw new Error(
+          errorData.detail || `Gaze tracking failed with status ${res.status}`
+        );
       }
-    } catch (error) {
-      console.error("Error during gaze tracking process:", error);
-      setError("Error during recording process");
-      setLoading(false);
-      if (isRecording) stopRecording();
+      stopRecording();
+    } catch (err) {
+      console.error("Error during gaze tracking or subsequent actions:", err);
+      setError(
+        `Error during gaze tracking: ${
+          err instanceof Error ? err.message : String(err)
+        }`
+      );
+      if (isRecording) {
+        stopRecording();
+      }
+    } finally {
     }
   };
 
@@ -374,10 +349,10 @@ function RecorderPage() {
 
         <div className="text-center">
           <button
-            onClick={() => generateImage(title, text)}
-            disabled={!title || !text || loading}
+            ref={generateButtonRef}
+            disabled={!title || !(transcript || text) || loading}
             className={`inline-block px-10 py-3 rounded-full text-white font-semibold shadow-lg transition transform hover:scale-105 ${
-              !title || !text
+              !title || !(transcript || text)
                 ? "bg-gray-300 cursor-not-allowed"
                 : "bg-[#9076ff] hover:bg-[#4e398e]"
             }`}
