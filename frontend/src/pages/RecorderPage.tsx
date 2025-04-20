@@ -15,70 +15,232 @@ function RecorderPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [gazeTrack, setGazeTrack] = useState(null);
+  const generateButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const startRecording = async () => {
     try {
+      setAudioBlob(null);
+      setTranscript(null);
+      setText("");
+      setError("");
+      audioChunksRef.current = [];
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
       mediaRecorderRef.current = recorder;
 
       recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) audioChunksRef.current.push(event.data);
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
       };
 
-      recorder.onstop = () => {
-        const blob = new Blob(audioChunksRef.current, { type: "audio/mp3" });
-        setAudioURL(URL.createObjectURL(blob));
-        setAudioBlob(blob);
-        audioChunksRef.current = [];
-        transcribeAudio(blob);
+      recorder.onstop = async () => {
+        if (audioChunksRef.current.length === 0) {
+          setError(
+            "No audio was recorded. Please try again and speak into your microphone."
+          );
+          setLoading(false);
+          return;
+        }
+
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: "audio/mp3",
+        });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        setAudioURL(audioUrl);
+        setAudioBlob(audioBlob);
+
+        if (audioBlob.size > 0) {
+          const transcript = await transcribeAudio(audioBlob);
+          if (transcript) {
+            setTranscript(transcript);
+            setText(transcript);
+          }
+          generateImage(title, transcript);
+          return transcript;
+        } else {
+          setError("Recording was too quiet. Please try again.");
+          setLoading(false);
+        }
       };
 
-      recorder.start();
+      recorder.start(10);
       setIsRecording(true);
-    } catch (err) {
-      console.error(err);
+      return true;
+    } catch (error) {
+      setError(
+        "Could not access microphone. Please check permissions and try again."
+      );
+      setLoading(false);
+      return false;
     }
   };
 
   const stopRecording = () => {
-    mediaRecorderRef.current?.stop();
-    mediaRecorderRef.current?.stream.getTracks().forEach((t) => t.stop());
+    console.log("Stopping recording");
+    setText("");
+    setTranscript("");
+    if (!mediaRecorderRef.current) {
+      console.warn("No MediaRecorder exists to stop");
+      setIsRecording(false);
+      return;
+    }
+
+    if (mediaRecorderRef.current.state !== "inactive") {
+      try {
+        console.log("Calling stop() on MediaRecorder");
+        mediaRecorderRef.current.stop();
+      } catch (err) {
+        console.error("Error stopping MediaRecorder:", err);
+      }
+    } else {
+      console.warn("MediaRecorder already inactive");
+    }
+
+    try {
+      mediaRecorderRef.current?.stream?.getTracks().forEach((track) => {
+        track.stop();
+        console.log("Audio track stopped");
+      });
+    } catch (err) {
+      console.error("Error stopping audio tracks:", err);
+    }
+
     setIsRecording(false);
   };
 
   const transcribeAudio = async (blob = audioBlob) => {
-    if (!blob) return console.error("No audio to transcribe");
+    console.log("Starting transcription with blob size:", blob?.size);
+    if (!blob) {
+      console.error("No audio blob to transcribe");
+      setError("No audio recorded. Please try again.");
+      setLoading(false);
+      return null;
+    }
+
     try {
       const formData = new FormData();
       formData.append("audio", blob, "recording.mp3");
-      const res = await axios.post(
+      console.log("Sending audio for transcription, blob size:", blob.size);
+
+      const response = await axios.post(
         "http://localhost:8000/transcribe",
         formData
       );
-      setTranscript(res.data.text);
-      setText(res.data.text);
-    } catch (err) {
-      console.error(err);
+
+      if (!response || !response.data) {
+        throw new Error("Transcription failed - no response data");
+      }
+
+      const data = response.data;
+      console.log("Transcription response:", data);
+
+      if (data.text && data.text.trim() !== "") {
+        const transcribedText = data.text.trim();
+        console.log("HAHAHAHAHAHHA:", transcribedText);
+        setTranscript(transcribedText);
+        setText(transcribedText);
+        return transcribedText;
+      } else {
+        console.error("Transcription returned empty text");
+        setError(
+          "Transcription returned empty text. Please speak louder or clearer."
+        );
+        setLoading(false);
+        return null;
+      }
+    } catch (error) {
+      console.error("Error during transcription:", error);
+      setError("Failed to transcribe audio. Please try again.");
+      setLoading(false);
+      return null;
     }
   };
 
-  const generateImage = async (title: string, transcript: string) => {
+  const generateImage = async (titleValue: string, transcriptValue: string) => {
+    setLoading(true);
+    setError("");
+    setImageUrl(null);
+    console.log(
+      `Generating image for title: "${titleValue}" and transcript: "${transcriptValue}"`
+    );
+    try {
+      const response = await axios.post<{ image_url?: string }>(
+        "http://localhost:8000/generate-image",
+        {
+          title: titleValue,
+          transcript: transcriptValue,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const data = response.data;
+      if (data.image_url) {
+        setImageUrl(data.image_url);
+        console.log("Image generated successfully:", data.image_url);
+      } else {
+        console.error(
+          "Failed to generate image - no image_url in response:",
+          data
+        );
+        setError(
+          "Failed to generate image. The server didn't provide an image URL."
+        );
+      }
+    } catch (err) {
+      console.error("Error fetching image:", err);
+      if (axios.isAxiosError(err)) {
+        setError(
+          `Error generating image: ${err.response?.data?.detail || err.message}`
+        );
+      } else {
+        setError("An unexpected error occurred while generating the image.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const recordWithGazeTracking = async () => {
+    setText("");
+    setTranscript("");
+    setImageUrl(null);
+
+    const recordingStarted = await startRecording();
+    if (!recordingStarted) {
+      return;
+    }
+
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(
-        `http://localhost:8000/generate-image?title=${encodeURIComponent(
-          title
-        )}&transcript=${encodeURIComponent(transcript)}`
+      const res = await fetch("http://localhost:8000/gaze-track");
+      if (!res.ok) {
+        const errorData = await res
+          .json()
+          .catch(() => ({ detail: "Unknown gaze tracking error" }));
+        throw new Error(
+          errorData.detail || `Gaze tracking failed with status ${res.status}`
+        );
+      }
+      stopRecording();
+    } catch (err) {
+      console.error("Error during gaze tracking or subsequent actions:", err);
+      setError(
+        `Error during gaze tracking: ${
+          err instanceof Error ? err.message : String(err)
+        }`
       );
-      const data = await res.json();
-      if (data.image_url) setImageUrl(data.image_url);
-      else setError("Failed to generate image");
-    } catch {
-      setError("Error fetching image");
+      if (isRecording) {
+        stopRecording();
+      }
     } finally {
-      setLoading(false);
     }
   };
 
@@ -93,7 +255,6 @@ function RecorderPage() {
         </h1>
 
         <div className="bg-white rounded-2xl shadow-xl p-6 space-y-6">
-          {/* Title input */}
           <div>
             <label
               htmlFor="title"
@@ -111,51 +272,71 @@ function RecorderPage() {
             />
           </div>
 
-          {/* Record controls */}
           <div className="flex flex-col items-center space-y-4">
             <p className="text-gray-600">
               {isRecording
                 ? "Recording… click the button to stop"
                 : "Click to start recording"}
             </p>
-            {isRecording ? (
+            <div className="flex space-x-4">
+              {isRecording ? (
+                <button
+                  onClick={stopRecording}
+                  className="w-16 h-16 flex items-center justify-center rounded-full bg-red-500 hover:bg-red-600 transition transform hover:scale-110 animate-pulse"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <rect x="6" y="6" width="12" height="12" rx="2" />
+                  </svg>
+                </button>
+              ) : (
+                <button
+                  onClick={startRecording}
+                  className="w-16 h-16 flex items-center justify-center rounded-full bg-[#9076ff] hover:bg-[#4e398e] transition transform hover:scale-110"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="22" />
+                  </svg>
+                </button>
+              )}
               <button
-                onClick={stopRecording}
-                className="w-16 h-16 flex items-center justify-center rounded-full bg-red-500 hover:bg-red-600 transition transform hover:scale-110 animate-pulse"
+                onClick={recordWithGazeTracking}
+                className="flex items-center justify-center w-16 h-16 rounded-full bg-[#9076ff] hover:bg-[#4e398e] text-white transition-all duration-300 hover:scale-110"
+                aria-label="Start recording with gaze tracking"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6 text-white"
-                  fill="none"
+                  width="24"
+                  height="24"
                   viewBox="0 0 24 24"
+                  fill="none"
                   stroke="currentColor"
-                  strokeWidth={2}
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
-                  <rect x="6" y="6" width="12" height="12" rx="2" />
+                  <circle cx="12" cy="12" r="10" />
+                  <circle cx="12" cy="12" r="3" />
                 </svg>
               </button>
-            ) : (
-              <button
-                onClick={startRecording}
-                className="w-16 h-16 flex items-center justify-center rounded-full bg-purple-600 hover:bg-purple-700 transition transform hover:scale-110"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6 text-white"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                  <line x1="12" y1="19" x2="12" y2="22" />
-                </svg>
-              </button>
-            )}
+            </div>
           </div>
 
-          {/* Transcript box */}
           {transcript && (
             <div>
               <h3 className="text-gray-700 mb-1 font-medium">Transcript</h3>
@@ -166,22 +347,20 @@ function RecorderPage() {
           )}
         </div>
 
-        {/* Generate button */}
         <div className="text-center">
           <button
-            onClick={() => generateImage(title, text)}
-            disabled={!title || !text || loading}
+            ref={generateButtonRef}
+            disabled={!title || !(transcript || text) || loading}
             className={`inline-block px-10 py-3 rounded-full text-white font-semibold shadow-lg transition transform hover:scale-105 ${
-              !title || !text
+              !title || !(transcript || text)
                 ? "bg-gray-300 cursor-not-allowed"
-                : "bg-purple-600 hover:bg-purple-700"
+                : "bg-[#9076ff] hover:bg-[#4e398e]"
             }`}
           >
             {loading ? "Generating…" : "Generate Image"}
           </button>
         </div>
 
-        {/* Generated image */}
         {imageUrl && (
           <div className="space-y-4">
             <h3 className="text-center text-xl font-medium text-gray-900">

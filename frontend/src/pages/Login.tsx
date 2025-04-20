@@ -30,7 +30,7 @@ const Login = () => {
         {/* Header */}
         <div className="text-center">
           <h2 className="text-3xl font-extrabold text-gray-900">
-            Welcome to <span className="text-purple-600">VIVI</span>
+            Welcome to <span className="text-[#9076ff]">VIVI</span>
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             Sign in to your account or create a new one
@@ -40,7 +40,7 @@ const Login = () => {
         {/* Actions */}
         <div className="space-y-6">
           <div className="flex justify-center">
-            <LoginButton className="w-full max-w-xs flex justify-center px-10 py-4 text-lg font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-full shadow-lg" />
+            <LoginButton className="w-full max-w-xs flex justify-center px-10 py-4 text-lg font-semibold text-white bg-[#9076ff] hover:bg-[#4e398e] rounded-full shadow-lg" />
           </div>
 
           {isAuthenticated && (
@@ -49,7 +49,7 @@ const Login = () => {
                 <Profile />
               </div>
               <div className="flex justify-center">
-                <LogoutButton className="w-full max-w-xs flex justify-center px-10 py-4 text-lg font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-full shadow-lg" />
+                <LogoutButton className="w-full max-w-xs flex justify-center px-10 py-4 text-lg font-semibold text-white bg-[#9076ff] hover:bg-[#4e398e] rounded-full shadow-lg" />
               </div>
             </div>
           )}
