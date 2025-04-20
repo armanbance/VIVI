@@ -151,7 +151,6 @@ def start_session():
     if not is_looking_at_camera():
         return {"error": "No face detected. Please look at the camera."}
     
-    record_audio()
     text = transcribe_audio()
     image_url = generate_image(text)
 
