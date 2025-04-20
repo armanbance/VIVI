@@ -1,6 +1,7 @@
 import { useAuth0 } from "@auth0/auth0-react";
 import { Link } from "react-router-dom";
 import icon from "../assets/icon.png";
+import groupPhoto from "../assets/groupPhoto.png";
 
 const HomePage = () => {
   const { isAuthenticated, isLoading } = useAuth0();
@@ -87,18 +88,19 @@ const HomePage = () => {
         <h1 className="text-center text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-gray-900">
           About <span className="text-[#9076ff]">Us</span>
         </h1>
-        <div className="flex flex-col items-center mt-8">
-          <p className="max-w-2xl mx-auto text-lg sm:text-xl text-gray-600 text-center leading-relaxed">
-            We’re a team of four student developers — Pranav Bhatt, Arman Bance,
+        <div className="flex flex-col md:flex-row items-start justify-between gap-12 mt-16 max-w-5xl mx-auto px-4">
+          <p className="text-lg sm:text-xl text-gray-600 leading-relaxed md:max-w-xl">
+            We're a team of four student developers — Pranav Bhatt, Arman Bance,
             Ryan Johnson, and Daniel Nguyen — brought together by a shared
             passion for building impactful technology for good. With backgrounds
             spanning AI, computer vision, full-stack development, and systems
             design, we combined our strengths to create an experience that helps
             neurodivergent users bring their imagination to life. We thrive on
             hacking together creative solutions fast, learning from each other,
-            and pushing the boundaries of what’s possible with machine learning
+            and pushing the boundaries of what's possible with machine learning
             and accessible design.
           </p>
+          <img src={groupPhoto} alt="Group Photo" className="rounded-lg w-full md:w-2/5 object-cover self-center" />
         </div>
       </div>
     </div>
