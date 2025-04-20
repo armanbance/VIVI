@@ -7,7 +7,9 @@ import mediapipe as mp
 import os
 from dotenv import load_dotenv
 import tempfile
+from db import test_connection
 from routers import auth0_users
+from pydantic import BaseModel
 
 
 # ========== CONFIG ==========
@@ -16,11 +18,15 @@ load_dotenv()
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-from db import test_connection
 app = FastAPI(title="HackDavis API")
 
-# Include routers
-app.include_router(auth0_users.router)
+FREE_PIK = os.getenv("FREE_PIK")
+
+# ========== Pydantic Models ==========
+class GenerateImageRequest(BaseModel):
+    title: str
+    transcript: str | None = None
+
 
 # ========== CORS CONFIG ==========
 app.add_middleware(
@@ -32,7 +38,6 @@ app.add_middleware(
 )
 
 # ========== HELPER FUNCTIONS ==========
-
 
 
 def is_looking_at_camera():
@@ -57,7 +62,7 @@ def is_looking_at_camera():
     looking = False
     frames_checked = 0
 
-    for i in range(40):  # ~5 seconds at 20 FPS
+    for i in range(10):  # ~5 seconds at 20 FPS
         ret, frame = cap.read()
         if not ret:
             print(f"[Frame {i}] ❌ Frame grab failed.")
@@ -84,7 +89,7 @@ def is_looking_at_camera():
                 center = (x1 + x2) / 2
                 delta = abs(cx - center)
                 print(f"   ➤ Eye delta: {delta:.4f}")
-                return delta < 0.002  # 🔥 More strict now!
+                return delta < 0.004  # 🔥 More strict now!
 
             left_ok = is_eye_centered(LEFT_EYE, LEFT_IRIS)
             right_ok = is_eye_centered(RIGHT_EYE, RIGHT_IRIS)
@@ -101,7 +106,6 @@ def is_looking_at_camera():
             not_gazing += 1
 
 
-        time.sleep(0.05)
 
     if gazing >= not_gazing:
         looking = True
@@ -115,6 +119,18 @@ def is_looking_at_camera():
     print(f"🧠 Final Gaze Verdict: {'LOOKING AT CAMERA' if looking else 'NOT looking'}")
 
     return looking
+
+def monitor_gaze():
+    print("📷 Starting gaze monitoring loop...")
+
+
+    while True:
+        result = is_looking_at_camera()
+        if result:
+            print("👋 User is no longer looking at the camera.")
+            break
+        else:
+            print("👁️ Still looking. Checking again in 3 seconds...\n")
 
 
 
@@ -134,13 +150,17 @@ def look_test():
     result = is_looking_at_camera()
     return {"looking_at_camera": result}
 
+@app.get("/gaze-track")
+def look_test():
+    monitor_gaze()
+    return {"message": "Gaze tracking complete"}
+
 
 @app.post("/start-session")
 def start_session():
     if not is_looking_at_camera():
         return {"error": "No face detected. Please look at the camera."}
     
-    record_audio()
     text = transcribe_audio()
     image_url = generate_image(text)
 
@@ -152,22 +172,24 @@ def start_session():
 
 # == Generate Image ==
 
-@app.get("/generate-image")
-def generate_image(title: str, transcript: str = None):
-    print(title, ":", transcript)
-    if transcript is None:
-        return {"message": "No audio"}
+@app.post("/generate-image")
+def generate_image(request_body: GenerateImageRequest):
+    print(request_body.title, ":", request_body.transcript)
+    if request_body.transcript is None:
+        raise HTTPException(status_code=400, detail="Transcript is required")
     try:
         response = client.images.generate(
             model="dall-e-3",
-            prompt="Generate a simple, cartoonish illustration inspired by the book title: " + title + ". Create an image that represents the key themes and atmosphere from this text: " + transcript + ". The style should be colorful, minimalistic, and suitable for a children's book or storybook.",
+            
+            prompt = 
+                "Create a detailed and imaginative illustration in the art style of " + request_body.title + "The image should visually represent the following narration or story passage: " +  request_body.transcript + ". Make it easy to understand, emotionally engaging, and helpful for someone who has difficulty visualizing mental images.",
             n=1,
             size="1024x1024"
         )
         image_url = response.data[0].url
         return {"image_url": image_url}
     except Exception as e:
-        return {"error": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))
 
 # == Transcribe ==
 

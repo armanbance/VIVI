@@ -4,6 +4,7 @@ import LoginButton from "../components/LoginButton";
 import LogoutButton from "../components/LogoutButton";
 import { Link } from "react-router-dom";
 import { useState } from "react";
+import icon from "../assets/icon.png";
 
 const Navbar = () => {
   const { isAuthenticated } = useAuth0();
@@ -19,22 +20,18 @@ const Navbar = () => {
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
               <div className="bg-white p-1 rounded-full">
-                <svg
-                  className="h-6 w-6 text-purple-600"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 6l4 4-4 4m0 0l-4-4 4-4"
-                  />
-                </svg>
+                <img
+                  src={icon}
+                  alt="Vivi logo"
+                  className="h-6 w-6 text-[#9076ff]"
+                />
               </div>
-              <span className="text-purple-600 font-bold text-xl">VIVI</span>
+              <span
+                className="text-[#9076ff] hover:text-[#4e398e] font-bold text-3xl transition
+        duration-300"
+              >
+                VIVI
+              </span>
             </Link>
           </div>
 
@@ -42,7 +39,7 @@ const Navbar = () => {
           <div className="hidden md:flex md:items-center md:space-x-4">
             <Link
               to="/"
-              className="text-purple-600 hover:text-purple-800 px-3 py-2 rounded-md"
+              className="text-[#9076ff] hover:text-[#4e398e] px-3 py-2 rounded-md transition duration-300"
             >
               Home
             </Link>
@@ -51,13 +48,15 @@ const Navbar = () => {
               <>
                 <Link
                   to="/recorder"
-                  className="text-purple-600 hover:text-purple-800 px-3 py-2 rounded-md"
+                  className="text-[#9076ff] hover:text-purple-800 px-3 py-2 rounded-md transition
+        duration-300"
                 >
                   Recorder
                 </Link>
                 <Link
                   to="/profile"
-                  className="text-purple-600 hover:text-purple-800 px-3 py-2 rounded-md"
+                  className="text-[#9076ff] hover:text-purple-800 px-3 py-2 rounded-md transition
+        duration-300"
                 >
                   Profile
                 </Link>
@@ -72,7 +71,7 @@ const Navbar = () => {
           <div className="md:hidden flex items-center">
             <button
               onClick={toggleMenu}
-              className="text-purple-600 hover:text-purple-800 focus:outline-none"
+              className="text-[#9076ff] hover:text-purple-800 focus:outline-none"
             >
               <svg
                 className="h-6 w-6"
@@ -109,7 +108,7 @@ const Navbar = () => {
             <Link
               to="/"
               onClick={() => setIsMenuOpen(false)}
-              className="text-purple-600 hover:text-purple-800 block px-3 py-2 rounded-md"
+              className="text-[#9076ff] hover:text-purple-800 block px-3 py-2 rounded-md"
             >
               Home
             </Link>
@@ -123,14 +122,14 @@ const Navbar = () => {
                 <Link
                   to="/recorder"
                   onClick={() => setIsMenuOpen(false)}
-                  className="text-purple-600 hover:text-purple-800 block px-3 py-2 rounded-md"
+                  className="text-[#9076ff] hover:text-purple-800 block px-3 py-2 rounded-md"
                 >
                   Recorder
                 </Link>
                 <Link
                   to="/profile"
                   onClick={() => setIsMenuOpen(false)}
-                  className="text-purple-600 hover:text-purple-800 block px-3 py-2 rounded-md"
+                  className="text-[#9076ff] hover:text-purple-800 block px-3 py-2 rounded-md"
                 >
                   Profile
                 </Link>
