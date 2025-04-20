@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
+import React from "react";
 import "./App.css";
 
 // Import pages
@@ -7,10 +8,11 @@ import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/Login";
 import RecorderPage from "./pages/RecorderPage";
 import ProfilePage from "./pages/ProfilePage";
+import Callback from "./pages/Callback";
 import Navbar from "./components/Navbar";
 
 // Protected route component
-const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
+const ProtectedRoute = ({ children }: { children: React.ReactElement }) => {
   const { isAuthenticated, isLoading } = useAuth0();
 
   if (isLoading) {
@@ -35,21 +37,22 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route 
-          path="/recorder" 
+        <Route path="/callback" element={<Callback />} />
+        <Route
+          path="/recorder"
           element={
             <ProtectedRoute>
               <RecorderPage />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route 
-          path="/profile" 
+        <Route
+          path="/profile"
           element={
             <ProtectedRoute>
               <ProfilePage />
             </ProtectedRoute>
-          } 
+          }
         />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

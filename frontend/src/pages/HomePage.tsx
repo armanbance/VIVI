@@ -13,38 +13,83 @@ const HomePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div
+      className="
+        min-h-screen
+        bg-gradient-to-tr from-purple-50 via-white to-blue-50
+        flex flex-col justify-center
+        px-4 sm:px-6 lg:px-8
+      "
+    >
       <div className="max-w-3xl mx-auto">
         <div className="text-center">
-          <h1 className="text-4xl font-extrabold text-gray-900 sm:text-5xl sm:tracking-tight lg:text-6xl">
-            Welcome to VIVI
+          {/* Optional book icon above the title */}
+          <div className="flex justify-center mb-6">
+            <div className="bg-white p-4 rounded-full shadow-lg">
+              {/* swap in your real book SVG if you like */}
+              <svg
+                className="h-8 w-8 text-purple-600"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6l4 4-4 4m0 0l-4-4 4-4"
+                />
+              </svg>
+            </div>
+          </div>
+
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-gray-900">
+            Welcome to <span className="text-purple-600">VIVI</span>
           </h1>
-          <p className="mt-5 max-w-xl mx-auto text-xl text-gray-500">
-            Your AI-powered audio-to-image book companion
+
+          {/* — badges under the heading — */}
+          <div className="mt-6 flex justify-center space-x-4">
+            <span className="inline-flex items-center px-3 py-1 bg-white rounded-full shadow">
+              <span className="text-yellow-400 mr-2">✨</span>
+              <span className="text-sm font-medium text-gray-700">
+                AI-powered
+              </span>
+            </span>
+            <span className="inline-flex items-center px-3 py-1 bg-white rounded-full shadow">
+              <span className="text-blue-400 mr-2">🖼️</span>
+              <span className="text-sm font-medium text-gray-700">
+                Audio-to-Image
+              </span>
+            </span>
+          </div>
+
+          <p className="mt-6 max-w-xl mx-auto text-lg sm:text-xl text-gray-600">
+            Your AI‑powered audio‑to‑image book companion
           </p>
         </div>
 
-        <div className="mt-10">
+        <div className="mt-8 flex flex-col items-center space-y-6">
           {isAuthenticated ? (
             <div className="space-y-4">
               <Link
                 to="/recorder"
-                className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 md:py-4 md:text-lg md:px-10"
+                className="inline-block px-10 py-4 text-lg font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-full shadow-lg"
               >
                 Go to Recorder
               </Link>
               <Link
                 to="/profile"
-                className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 md:py-4 md:text-lg md:px-10"
+                className="inline-block px-8 py-3 text-base font-medium text-purple-700 bg-purple-100 hover:bg-purple-200 rounded-full"
               >
                 View Profile
               </Link>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4 flex flex-col items-center">
               <Link
                 to="/login"
-                className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 md:py-4 md:text-lg md:px-10"
+                className="inline-block px-10 py-4 text-lg font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-full shadow-lg"
               >
                 Get Started
               </Link>

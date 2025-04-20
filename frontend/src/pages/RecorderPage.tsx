@@ -31,7 +31,6 @@ function RecorderPage() {
 
       // Initialize the MediaRecorder
       const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
-
       mediaRecorderRef.current = recorder;
 
       recorder.ondataavailable = (event) => {
@@ -137,9 +136,7 @@ function RecorderPage() {
       // Create FormData to send audio file
       const formData = new FormData();
       formData.append("audio", blob, "recording.mp3");
-
-      // Send to transcription endpoint
-      const response = await axios.post(
+      const res = await axios.post(
         "http://localhost:8000/transcribe",
         formData
       );
@@ -178,22 +175,16 @@ function RecorderPage() {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(
+      const res = await fetch(
         `http://localhost:8000/generate-image?title=${encodeURIComponent(
           title
         )}&transcript=${encodeURIComponent(transcript)}`
       );
-
-      const data = await response.json();
-
-      if (data.image_url) {
-        setImageUrl(data.image_url); // Set the image URL to state
-      } else {
-        setError("Failed to generate image.");
-      }
-    } catch (error) {
-      setError("Error fetching image.");
-      console.error("Error:", error);
+      const data = await res.json();
+      if (data.image_url) setImageUrl(data.image_url);
+      else setError("Failed to generate image");
+    } catch {
+      setError("Error fetching image");
     } finally {
       setLoading(false);
     }
@@ -249,56 +240,53 @@ function RecorderPage() {
   };
 
   const { isLoading } = useAuth0();
-
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
+  if (isLoading) return <div>Loading…</div>;
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Audio Recorder</h1>
+    <div className="min-h-screen bg-gradient-to-tr from-purple-50 via-white to-blue-50 py-12 px-4">
+      <div className="max-w-3xl mx-auto space-y-8">
+        <h1 className="text-center text-3xl sm:text-4xl font-extrabold text-gray-900">
+          Audio Recorder
+        </h1>
 
-      <div className="bg-gray-800 rounded-xl shadow-2xl p-6 mb-8 border border-gray-700">
-        <div className="mb-6">
-          <label
-            htmlFor="title"
-            className="block text-gray-300 mb-2 text-sm font-medium"
-          >
-            Book Title
-          </label>
-          <input
-            id="title"
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Enter book title"
-            className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-          />
-        </div>
+        <div className="bg-white rounded-2xl shadow-xl p-6 space-y-6">
+          {/* Title input */}
+          <div>
+            <label
+              htmlFor="title"
+              className="block text-gray-700 mb-1 font-medium"
+            >
+              Book Title
+            </label>
+            <input
+              id="title"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Enter book title"
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-600 transition"
+            />
+          </div>
 
-        <div className="flex flex-col items-center mb-6">
-          <p className="text-gray-300 mb-3">
-            {isRecording
-              ? "Recording in progress..."
-              : "Click to start recording"}
-          </p>
-          <div className="flex space-x-4">
+          {/* Record controls */}
+          <div className="flex flex-col items-center space-y-4">
+            <p className="text-gray-600">
+              {isRecording
+                ? "Recording… click the button to stop"
+                : "Click to start recording"}
+            </p>
             {isRecording ? (
               <button
                 onClick={stopRecording}
-                className="flex items-center justify-center w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 transition-all duration-300 animate-pulse"
-                aria-label="Stop recording"
+                className="w-16 h-16 flex items-center justify-center rounded-full bg-red-500 hover:bg-red-600 transition transform hover:scale-110 animate-pulse"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
+                  className="h-6 w-6 text-white"
                   fill="none"
+                  viewBox="0 0 24 24"
                   stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                  strokeWidth={2}
                 >
                   <rect x="6" y="6" width="12" height="12" rx="2" />
                 </svg>
@@ -306,19 +294,15 @@ function RecorderPage() {
             ) : (
               <button
                 onClick={startRecording}
-                className="flex items-center justify-center w-16 h-16 rounded-full bg-blue-500 hover:bg-blue-600 transition-all duration-300"
-                aria-label="Start recording"
+                className="w-16 h-16 flex items-center justify-center rounded-full bg-purple-600 hover:bg-purple-700 transition transform hover:scale-110"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
+                  className="h-6 w-6 text-white"
                   fill="none"
+                  viewBox="0 0 24 24"
                   stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                  strokeWidth={2}
                 >
                   <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
                   <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
@@ -326,74 +310,54 @@ function RecorderPage() {
                 </svg>
               </button>
             )}
-            <button
-              onClick={recordWithGazeTracking}
-              className="flex items-center justify-center w-16 h-16 rounded-full bg-green-500 hover:bg-green-600 transition-all duration-300"
-              aria-label="Start recording with gaze tracking"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-            </button>
           </div>
+
+          {/* Transcript box */}
+          {transcript && (
+            <div>
+              <h3 className="text-gray-700 mb-1 font-medium">Transcript</h3>
+              <div className="p-3 bg-gray-100 rounded-lg border border-gray-200 max-h-40 overflow-y-auto text-gray-800">
+                {transcript}
+              </div>
+            </div>
+          )}
         </div>
 
-        {transcript && (
-          <div className="mb-6">
-            <h3 className="text-gray-300 mb-2 text-sm font-medium">
-              Transcript
+        {/* Generate button */}
+        <div className="text-center">
+          <button
+            onClick={() => generateImage(title, text)}
+            disabled={!title || !text || loading}
+            className={`inline-block px-10 py-3 rounded-full text-white font-semibold shadow-lg transition transform hover:scale-105 ${
+              !title || !text
+                ? "bg-gray-300 cursor-not-allowed"
+                : "bg-purple-600 hover:bg-purple-700"
+            }`}
+          >
+            {loading ? "Generating…" : "Generate Image"}
+          </button>
+        </div>
+
+        {/* Generated image */}
+        {imageUrl && (
+          <div className="space-y-4">
+            <h3 className="text-center text-xl font-medium text-gray-900">
+              Generated Image
             </h3>
-            <div className="p-4 text-white bg-gray-700 rounded-lg border border-gray-600 max-h-40 overflow-y-auto">
-              {transcript}
+            <div className="rounded-lg overflow-hidden shadow-lg">
+              <img
+                src={imageUrl}
+                alt="Generated"
+                className="w-full object-contain"
+              />
             </div>
           </div>
         )}
+
+        {error && (
+          <p className="text-center text-red-600 font-medium">{error}</p>
+        )}
       </div>
-
-      <p className="text-gray-400 italic">
-        {title
-          ? "Read a passage and click generate to generate an image"
-          : "Enter a book title and record your voice to generate an image"}
-      </p>
-      <button
-        onClick={() => generateImage(title, text)}
-        disabled={!title || !text}
-        className={`mt-4 px-6 py-3 rounded-lg text-white ${
-          !title || !text
-            ? "bg-gray-500 cursor-not-allowed"
-            : "bg-blue-500 hover:bg-blue-600"
-        } transition`}
-      >
-        Generate Image
-      </button>
-
-      {loading ? (
-        <div className="flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      ) : imageUrl ? (
-        <div className="mt-8">
-          <h3 className="text-xl font-medium mb-4">Generated Image</h3>
-          <div className="rounded-lg overflow-hidden shadow-lg border border-gray-700">
-            <img
-              src={imageUrl}
-              alt="Generated scene"
-              className="w-full max-h-96 object-contain bg-black"
-            />
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
