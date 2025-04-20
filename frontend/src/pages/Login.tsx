@@ -19,42 +19,46 @@ const Login = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-10 bg-white rounded-xl shadow-lg">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-tr from-purple-50 via-white to-blue-50">
+      <div className="max-w-md w-full space-y-8 p-8 sm:p-10 bg-white rounded-2xl shadow-xl">
+        {/* Header */}
         <div className="text-center">
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Welcome to VIVI
+          <h2 className="text-3xl font-extrabold text-gray-900">
+            Welcome to <span className="text-purple-600">VIVI</span>
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             Sign in to your account or create a new one
           </p>
         </div>
 
-        <div className="mt-8 space-y-6">
-          <LoginButton />
+        {/* Actions */}
+        <div className="space-y-6">
+          <div className="flex justify-center">
+            <LoginButton className="w-full max-w-xs flex justify-center px-10 py-4 text-lg font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-full shadow-lg" />
+          </div>
 
           {isAuthenticated && (
-            <div className="mt-4">
-              <Profile />
-              <div className="mt-4 flex justify-center">
-                <LogoutButton />
+            <div className="space-y-4">
+              <div className="flex justify-center">
+                <Profile />
+              </div>
+              <div className="flex justify-center">
+                <LogoutButton className="w-full max-w-xs flex justify-center px-10 py-4 text-lg font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-full shadow-lg" />
               </div>
             </div>
           )}
-
-          <div className="text-center text-sm">
-            <p className="text-gray-500">
-              By continuing, you agree to our Terms of Service and Privacy
-              Policy
-            </p>
-          </div>
         </div>
+
+        {/* Footer */}
+        <p className="mt-6 text-center text-xs text-gray-500">
+          By continuing, you agree to our Terms of Service and Privacy Policy
+        </p>
       </div>
     </div>
   );

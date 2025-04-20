@@ -1,30 +1,48 @@
+// src/components/Navbar.jsx
 import { useAuth0 } from "@auth0/auth0-react";
+import LoginButton from "../components/LoginButton";
+import LogoutButton from "../components/LogoutButton";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 
 const Navbar = () => {
-  const { isAuthenticated, logout } = useAuth0();
+  const { isAuthenticated } = useAuth0();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
+  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
   return (
-    <nav className="bg-gray-800 shadow-lg">
+    <nav className="bg-white shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
+          {/* Logo */}
           <div className="flex items-center">
-            <Link to="/" className="text-white font-bold text-xl">
-              VIVI
+            <Link to="/" className="flex items-center space-x-2">
+              <div className="bg-white p-1 rounded-full">
+                <svg
+                  className="h-6 w-6 text-purple-600"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6l4 4-4 4m0 0l-4-4 4-4"
+                  />
+                </svg>
+              </div>
+              <span className="text-purple-600 font-bold text-xl">VIVI</span>
             </Link>
           </div>
 
-          {/* Desktop menu */}
+          {/* Desktop nav */}
           <div className="hidden md:flex md:items-center md:space-x-4">
             <Link
               to="/"
-              className="text-gray-300 hover:text-white px-3 py-2 rounded-md"
+              className="text-purple-600 hover:text-purple-800 px-3 py-2 rounded-md"
             >
               Home
             </Link>
@@ -33,42 +51,28 @@ const Navbar = () => {
               <>
                 <Link
                   to="/recorder"
-                  className="text-gray-300 hover:text-white px-3 py-2 rounded-md"
+                  className="text-purple-600 hover:text-purple-800 px-3 py-2 rounded-md"
                 >
                   Recorder
                 </Link>
                 <Link
                   to="/profile"
-                  className="text-gray-300 hover:text-white px-3 py-2 rounded-md"
+                  className="text-purple-600 hover:text-purple-800 px-3 py-2 rounded-md"
                 >
                   Profile
                 </Link>
-                <button
-                  onClick={() =>
-                    logout({
-                      logoutParams: { returnTo: window.location.origin },
-                    })
-                  }
-                  className="text-gray-300 hover:text-white px-3 py-2 rounded-md"
-                >
-                  Logout
-                </button>
+                <LogoutButton />
               </>
             ) : (
-              <Link
-                to="/login"
-                className="text-gray-300 hover:text-white px-3 py-2 rounded-md"
-              >
-                Login
-              </Link>
+              <LoginButton />
             )}
           </div>
 
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center">
             <button
-              className="text-gray-400 hover:text-white focus:outline-none"
               onClick={toggleMenu}
+              className="text-purple-600 hover:text-purple-800 focus:outline-none"
             >
               <svg
                 className="h-6 w-6"
@@ -98,54 +102,42 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile menu */}
+      {/* Mobile nav */}
       {isMenuOpen && (
-        <div className="md:hidden bg-gray-700">
+        <div className="md:hidden bg-white">
           <div className="px-2 pt-2 pb-3 space-y-1">
             <Link
               to="/"
-              className="text-gray-300 hover:text-white block px-3 py-2 rounded-md"
               onClick={() => setIsMenuOpen(false)}
+              className="text-purple-600 hover:text-purple-800 block px-3 py-2 rounded-md"
             >
               Home
             </Link>
 
-            {isAuthenticated ? (
+            {!isAuthenticated ? (
+              <div onClick={() => setIsMenuOpen(false)}>
+                <LoginButton className="w-full block text-center" />
+              </div>
+            ) : (
               <>
                 <Link
                   to="/recorder"
-                  className="text-gray-300 hover:text-white block px-3 py-2 rounded-md"
                   onClick={() => setIsMenuOpen(false)}
+                  className="text-purple-600 hover:text-purple-800 block px-3 py-2 rounded-md"
                 >
                   Recorder
                 </Link>
                 <Link
                   to="/profile"
-                  className="text-gray-300 hover:text-white block px-3 py-2 rounded-md"
                   onClick={() => setIsMenuOpen(false)}
+                  className="text-purple-600 hover:text-purple-800 block px-3 py-2 rounded-md"
                 >
                   Profile
                 </Link>
-                <button
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    logout({
-                      logoutParams: { returnTo: window.location.origin },
-                    });
-                  }}
-                  className="text-gray-300 hover:text-white block px-3 py-2 rounded-md w-full text-left"
-                >
-                  Logout
-                </button>
+                <div onClick={() => setIsMenuOpen(false)}>
+                  <LogoutButton className="w-full block text-center" />
+                </div>
               </>
-            ) : (
-              <Link
-                to="/login"
-                className="text-gray-300 hover:text-white block px-3 py-2 rounded-md"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Login
-              </Link>
             )}
           </div>
         </div>
