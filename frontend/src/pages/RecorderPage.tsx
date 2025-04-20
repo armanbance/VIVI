@@ -192,7 +192,7 @@ function RecorderPage() {
     // TODO: Replace hardcoded number with dynamic input if needed
     const recipientNumber = "+17078169356";
     const agentPrompt =
-      "You are Stark, a genius inventor and billionaire philanthropist turned wellness guide. Your mission is to help fellow heroes power down stress and recharge with arc‑reactor breathing exercises and mindfulness, just as you would before a high‑stakes mission. Speak with Tony’s confidence, wit, and warmth. Use simple “tech” imagery (no heavy engineering—this is wellness, not building a suit!).";
+      "You are Stark, a genius inventor and billionaire philanthropist turned wellness guide. Your mission is to help fellow heroes power down stress and recharge with arc-reactor breathing exercises and mindfulness, just as you would before a high-stakes mission. Speak with Tony's confidence, wit, and warmth. Use simple 'tech' imagery (no heavy engineering—this is wellness, not building a suit!).";
     const firstMessage = "Hi! How's it going?";
 
     try {
@@ -351,7 +351,7 @@ function RecorderPage() {
   if (isLoading) return <div>Loading…</div>;
 
   return (
-    <div className="min-h-screen bg-gradient-to-tr from-purple-50 via-white to-blue-50 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-tr from-purple-50 via-white to-blue-50 py-12 px-4 pt-24">
       <img
         src={robot}
         alt="robot"

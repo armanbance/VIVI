@@ -2,23 +2,63 @@
 import { useAuth0 } from "@auth0/auth0-react";
 import LoginButton from "../components/LoginButton";
 import LogoutButton from "../components/LogoutButton";
-import { Link } from "react-router-dom";
-import { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import icon from "../assets/icon.png";
 
 const Navbar = () => {
   const { isAuthenticated } = useAuth0();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
+  const scrollToAbout = () => {
+    if (location.pathname !== "/") {
+      navigate("/", { state: { scrollToAbout: true } });
+    } else {
+      const aboutSection = document.getElementById("about");
+      if (aboutSection) {
+        aboutSection.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+    setIsMenuOpen(false);
+  };
+
+  useEffect(() => {
+    if (location.state?.scrollToAbout) {
+      const aboutSection = document.getElementById("about");
+      if (aboutSection) {
+        aboutSection.scrollIntoView({ behavior: "smooth" });
+      }
+      // Clear the state after scrolling
+      navigate(location.pathname, { state: {}, replace: true });
+    }
+  }, [location, navigate]);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Function to navigate to a route and ensure we start at the top
+  const navigateToRoute = (route: string) => {
+    navigate(route);
+    window.scrollTo(0, 0);
+    setIsMenuOpen(false);
+  };
+
   return (
-    <nav className="bg-white shadow-lg">
+    <nav className="bg-white shadow-lg fixed top-0 left-0 right-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <Link to="/" className="flex items-center space-x-2">
+            <Link
+              to="/"
+              className="flex items-center space-x-2"
+              onClick={scrollToTop}
+            >
               <div className="bg-white p-1 rounded-full">
                 <img
                   src={icon}
@@ -37,22 +77,28 @@ const Navbar = () => {
 
           {/* Desktop nav */}
           <div className="hidden md:flex md:items-center md:space-x-4">
+            <button
+              onClick={scrollToAbout}
+              className="text-[#9076ff] hover:text-purple-800 px-3 py-2 rounded-md transition duration-300"
+            >
+              About
+            </button>
             {isAuthenticated ? (
               <>
-                <Link
-                  to="/recorder"
+                <button
+                  onClick={() => navigateToRoute("/recorder")}
                   className="text-[#9076ff] hover:text-purple-800 px-3 py-2 rounded-md transition
         duration-300"
                 >
                   Compiler
-                </Link>
-                <Link
-                  to="/profile"
+                </button>
+                <button
+                  onClick={() => navigateToRoute("/profile")}
                   className="text-[#9076ff] hover:text-purple-800 px-3 py-2 rounded-md transition
         duration-300"
                 >
                   Profile
-                </Link>
+                </button>
                 <LogoutButton />
               </>
             ) : (
@@ -98,13 +144,21 @@ const Navbar = () => {
       {isMenuOpen && (
         <div className="md:hidden bg-white">
           <div className="px-2 pt-2 pb-3 space-y-1">
-            <Link
-              to="/"
-              onClick={() => setIsMenuOpen(false)}
-              className="text-[#9076ff] hover:text-purple-800 block px-3 py-2 rounded-md"
+            <button
+              onClick={() => {
+                navigateToRoute("/");
+              }}
+              className="w-full text-left text-[#9076ff] hover:text-purple-800 block px-3 py-2 rounded-md"
             >
               Home
-            </Link>
+            </button>
+
+            <button
+              onClick={scrollToAbout}
+              className="w-full text-left text-[#9076ff] hover:text-purple-800 block px-3 py-2 rounded-md"
+            >
+              About
+            </button>
 
             {!isAuthenticated ? (
               <div onClick={() => setIsMenuOpen(false)}>
@@ -112,20 +166,18 @@ const Navbar = () => {
               </div>
             ) : (
               <>
-                <Link
-                  to="/recorder"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="text-[#9076ff] hover:text-purple-800 block px-3 py-2 rounded-md"
+                <button
+                  onClick={() => navigateToRoute("/recorder")}
+                  className="w-full text-left text-[#9076ff] hover:text-purple-800 block px-3 py-2 rounded-md"
                 >
                   Recorder
-                </Link>
-                <Link
-                  to="/profile"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="text-[#9076ff] hover:text-purple-800 block px-3 py-2 rounded-md"
+                </button>
+                <button
+                  onClick={() => navigateToRoute("/profile")}
+                  className="w-full text-left text-[#9076ff] hover:text-purple-800 block px-3 py-2 rounded-md"
                 >
                   Profile
-                </Link>
+                </button>
                 <div onClick={() => setIsMenuOpen(false)}>
                   <LogoutButton className="w-full block text-center" />
                 </div>

@@ -16,13 +16,13 @@ const HomePage = () => {
   return (
     <div
       className="
-        min-h-screen
+         min-h-screen
         bg-gradient-to-tr from-[#f5f2ff] via-white to-blue-50
         flex flex-col justify-center
         px-4 sm:px-6 lg:px-8
       "
     >
-      <div className="max-w-3xl mx-auto">
+      <div className=" mt-36 max-w-3xl mx-auto">
         <div className="text-center">
           {/* Optional book icon above the title */}
           <div className="flex justify-center mb-6">
@@ -73,7 +73,7 @@ const HomePage = () => {
             </div>
           )}
         </div>
-        <div className="rounded-full max-w-96 p-1 bg-gradient-to-r from-[#9076ff] to-[#4e398e] hover:from-[#4e398e] hover:to-[#9076ff] transition duration-300 mx-auto">
+        <div className="mb-32 rounded-full max-w-96 p-1 bg-gradient-to-r from-[#9076ff] to-[#4e398e] hover:from-[#4e398e] hover:to-[#9076ff] transition duration-300 mx-auto">
           <a
             href="/files/vivi-chrome.zip"
             download="vivi-chrome.zip"
@@ -81,6 +81,24 @@ const HomePage = () => {
           >
             Download Our Chrome Extension!
           </a>
+        </div>
+      </div>
+      <div className="mt-32 mb-32" id="about">
+        <h1 className="text-center text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-gray-900">
+          About <span className="text-[#9076ff]">Us</span>
+        </h1>
+        <div className="flex flex-col items-center mt-8">
+          <p className="max-w-2xl mx-auto text-lg sm:text-xl text-gray-600 text-center leading-relaxed">
+            We’re a team of four student developers — Pranav Bhatt, Arman Bance,
+            Ryan Johnson, and Daniel Nguyen — brought together by a shared
+            passion for building impactful technology for good. With backgrounds
+            spanning AI, computer vision, full-stack development, and systems
+            design, we combined our strengths to create an experience that helps
+            neurodivergent users bring their imagination to life. We thrive on
+            hacking together creative solutions fast, learning from each other,
+            and pushing the boundaries of what’s possible with machine learning
+            and accessible design.
+          </p>
         </div>
       </div>
     </div>
