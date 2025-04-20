@@ -1,5 +1,5 @@
 import "../App.css";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { useAuth0 } from "@auth0/auth0-react";
 import robot from "../assets/robot.png";
@@ -21,7 +21,72 @@ function RecorderPage() {
   const [callLoading, setCallLoading] = useState(false);
   const [callMessage, setCallMessage] = useState("");
 
+  const [encounteredCharacters, setEncounteredCharacters] = useState<string[]>(
+    []
+  );
+  const [charactersLoading, setCharactersLoading] = useState<boolean>(true); // Optional loading state
+
   const generateButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  const fetchCharacters = async () => {
+    setCharactersLoading(true); // Start loading
+    try {
+      console.log("Fetching encountered characters...");
+      // Use the GET endpoint for the hardcoded user
+      const response = await axios.get<{ characters: string[] }>(
+        "http://localhost:8000/api/auth0-users/my-characters" // Correct endpoint
+      );
+      // Assuming the response data is { characters: ["Char1", "Char2"] }
+      if (response.data && Array.isArray(response.data.characters)) {
+        setEncounteredCharacters(response.data.characters);
+        console.log("Fetched characters:", response.data.characters);
+      } else {
+        console.error("Invalid character data received:", response.data);
+        setEncounteredCharacters([]); // Set empty if format is wrong
+      }
+    } catch (err) {
+      console.error("Error fetching characters:", err);
+      setError("Failed to load encountered characters."); // Set general error or a specific one
+      setEncounteredCharacters([]); // Clear characters on error
+    } finally {
+      setCharactersLoading(false); // Stop loading
+    }
+  };
+  useEffect(() => {
+    fetchCharacters();
+    // Empty dependency array means this runs once when the component mounts
+  }, []);
+
+  const saveTranscriptToBackend = async (transcriptText: string) => {
+    // Only proceed if transcriptText is not empty
+    if (!transcriptText || !transcriptText.trim()) {
+      console.log("Skipping save: transcript is empty.");
+      return;
+    }
+
+    console.log("Attempting to save transcript:", transcriptText);
+    try {
+      // Use the new backend endpoint
+      // Note: No auth token needed for this specific endpoint yet, as it's hardcoded
+      const response = await axios.post(
+        "http://localhost:8000/api/add-transcript", // Make sure this URL is correct
+        {
+          transcript: transcriptText, // Send data in the format expected by the backend
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      console.log("Transcript saved successfully:", response.data);
+      await fetchCharacters();
+    } catch (error) {
+      console.error("Error saving transcript to backend:", error);
+      // Optional: Set an error state here if you want to notify the user
+      // setError("Failed to save transcript. Please check console.");
+    }
+  };
 
   const startRecording = async () => {
     try {
@@ -180,6 +245,7 @@ function RecorderPage() {
         console.log("HAHAHAHAHAHHA:", transcribedText);
         setTranscript(transcribedText);
         setText(transcribedText);
+        await saveTranscriptToBackend(transcribedText);
         return transcribedText;
       } else {
         console.error("Transcription returned empty text");
@@ -390,6 +456,42 @@ function RecorderPage() {
           )}
         </div>
 
+        {/* --- NEW: Encountered Characters Display --- */}
+        {encounteredCharacters.length > 0 && (
+          <div className="border-t pt-4 mt-4">
+            <h3 className="text-gray-700 mb-2 font-medium">
+              Characters Encountered
+            </h3>
+            {/* Option 1: Simple List */}
+            {/* <ul className="list-disc list-inside text-gray-600">
+                 {encounteredCharacters.map((char, index) => (
+                   <li key={index}>{char}</li>
+                 ))}
+               </ul> */}
+
+            {/* Option 2: Dropdown */}
+            <select
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-purple-600 transition"
+              defaultValue=""
+            >
+              <option value="" disabled>
+                Select a character...
+              </option>
+              {encounteredCharacters.map((char, index) => (
+                <option key={index} value={char}>
+                  {char}
+                </option>
+              ))}
+            </select>
+
+            {/* Option 3: Comma-separated string */}
+            {/* <p className="text-gray-600 bg-gray-50 p-2 rounded border">
+                  {encounteredCharacters.join(', ')}
+                </p> */}
+          </div>
+        )}
+        {/* --- End Characters Display --- */}
+
         {/* Container for action buttons */}
         <div className="text-center flex flex-col sm:flex-row justify-center items-center gap-4">
           <button
@@ -415,7 +517,7 @@ function RecorderPage() {
                 : "bg-[#9076ff] hover:bg-[#4e398e]" // Example: green color
             }`}
           >
-            {callLoading ? "Calling…" : "Call Agent"}
+            {callLoading ? "Calling…" : "Interact with Selected Character"}
           </button>
         </div>
 

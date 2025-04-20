@@ -2,17 +2,18 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import cv2
 import time
-from openai import OpenAI
+from openai import OpenAI, AsyncOpenAI
 import mediapipe as mp
 import os
 from dotenv import load_dotenv
 import tempfile
-from db import test_connection
+from db import test_connection, users_collection
 from routers import auth0_users
 from pydantic import BaseModel
 from fastapi.encoders import jsonable_encoder
 from bson import ObjectId
 from json import JSONEncoder
+import re # Import regex for potential cleanup later if needed
 
 
 # ========== CONFIG ==========
@@ -20,6 +21,7 @@ from json import JSONEncoder
 load_dotenv()
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client2 = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 app = FastAPI(title="HackDavis API")
 
@@ -257,6 +259,158 @@ async def transcribe_audio(audio: UploadFile = File(...)):
         raise HTTPException(
             status_code=500, 
             detail=f"Transcription failed: {str(transcription_error)}"
+        )
+
+
+# == Pydantic Model for Transcript Payload ==
+class TranscriptPayload(BaseModel):
+    transcript: str
+
+# == Add Transcript to Specific User ==
+@app.post("/api/add-transcript", status_code=200)
+async def add_transcript(payload: TranscriptPayload):
+    """
+    Adds a transcript string to the hardcoded user 'armanbance@gmail.com'
+    and attempts to extract character names using OpenAI.
+    Expects a JSON body like: {"transcript": "the transcript text"}
+    """
+    target_email = "armanbance@gmail.com" # Hardcoded as requested
+    transcript_text = payload.transcript
+    extracted_characters_list = [] # Initialize empty list for characters
+
+    if not transcript_text or not transcript_text.strip():
+        raise HTTPException(status_code=400, detail="Transcript text cannot be empty.")
+
+    # --- Attempt to extract characters using OpenAI ---
+    try:
+        print(f"Attempting OpenAI character extraction for transcript: '{transcript_text[:100]}...'") # Log snippet
+        prompt = (
+            f"Extract all the character names mentioned in the following text. "
+            f"List only the unique names, separated by commas. "
+            f"If no character names are found, respond with the single word 'None'.\n\n"
+            f"Text: \"{transcript_text}\""
+        )
+
+        # Make the call to OpenAI Chat Completions API
+        chat_completion = await client2.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant that extracts character names from text.",
+                },
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            model="gpt-3.5-turbo", # Or another model like gpt-4o-mini if preferred
+            temperature=0.2, # Lower temperature for more deterministic output
+            max_tokens=100 # Limit response length
+        )
+
+        # Extract the response content
+        ai_response_content = chat_completion.choices[0].message.content
+        print(f"OpenAI response: {ai_response_content}")
+
+        # Parse the response
+        if ai_response_content and ai_response_content.strip().lower() != 'none':
+            # Split by comma, strip whitespace from each name, and deduplicate using a set
+            potential_names = ai_response_content.split(',')
+            # Use a set comprehension for concise stripping and deduplication
+            unique_characters = {name.strip() for name in potential_names if name.strip()}
+            extracted_characters_list = sorted(list(unique_characters)) # Store as sorted list
+            print(f"Extracted characters: {extracted_characters_list}")
+        else:
+            print("OpenAI indicated no characters found or response was empty.")
+
+    except Exception as ai_error:
+        print(f"Error during OpenAI character extraction: {ai_error}")
+        # Decide how to handle: Proceed without characters? Return an error?
+        # For now, just log it and proceed to save the transcript only.
+        pass # Continue execution even if AI fails
+
+    # --- Save Transcript (Character saving logic will be added next) ---
+    try:
+        # Temporarily, only update the transcript
+        # TODO: Combine this with character update later
+        update_operation = {
+             "$push": {"transcripts": transcript_text}
+        }
+
+        if extracted_characters_list:
+            # $addToSet adds items to the array only if they don't already exist
+            # $each allows adding multiple items from the list
+            update_operation["$addToSet"] = {"characters": {"$each": extracted_characters_list}}
+        # -------------------
+
+        print(f"Performing database update: {update_operation}") # Log the update command
+        # In the next step, we'll add:
+        # if extracted_characters_list:
+        #    update_operation["$addToSet"] = {"characters": {"$each": extracted_characters_list}}
+
+        result = await users_collection.update_one(
+            {"email": target_email},
+            update_operation # Pass the combined update later
+        )
+
+        if result.matched_count == 0:
+            print(f"Warning: User with email '{target_email}' not found for adding transcript.")
+            raise HTTPException(
+                status_code=404,
+                detail=f"User with email '{target_email}' not found."
+            )
+        elif result.modified_count == 0:
+             print(f"Warning: User '{target_email}' matched but transcript array not modified (or character update didn't modify).")
+
+        print(f"Successfully added transcript for user '{target_email}'. Character extraction attempted.")
+        # Return extracted characters for verification in this step
+        return {
+            "message": f"Transcript added successfully to user {target_email}. Character extraction attempted.",
+            "extracted_characters": extracted_characters_list # Return the list found in this transcript
+        }
+
+    except Exception as db_error:
+        print(f"Error adding transcript for user {target_email} after AI attempt: {db_error}")
+        # Raise DB error even if AI succeeded or failed
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to add transcript to DB: {str(db_error)}"
+        )
+
+# Re-add the dummy endpoint for now if it was needed
+@app.post("/add-dummy-transcript", status_code=200)
+async def add_dummy_transcript_to_user():
+    """
+    Adds a dummy transcript string to the user with email 'armanbance@gmail.com'.
+    Uses MongoDB's $push operator.
+    """
+    target_email = "armanbance@gmail.com"
+    dummy_text = f"Dummy transcript added at {time.time()}" # Add timestamp for uniqueness
+
+    try:
+        # No need to import users_collection here, it's imported globally
+
+        # Use update_one with $push to add to the array
+        result = await users_collection.update_one(
+            {"email": target_email},
+            {"$push": {"transcripts": dummy_text}}
+        )
+
+        if result.matched_count == 0:
+            raise HTTPException(
+                status_code=404,
+                detail=f"User with email '{target_email}' not found."
+            )
+        elif result.modified_count == 0:
+             print(f"Warning: User '{target_email}' matched but not modified by dummy add.")
+
+        print(f"Successfully added dummy transcript to user '{target_email}'. Matched: {result.matched_count}, Modified: {result.modified_count}")
+        return {"message": f"Dummy transcript added successfully to user {target_email}"}
+    except Exception as e:
+        print(f"Error adding dummy transcript: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to add dummy transcript: {str(e)}"
         )
 
 # ========== DEV SERVER ==========
