@@ -8,6 +8,7 @@ import os
 from dotenv import load_dotenv
 import tempfile
 from routers import auth0_users
+from fastapi import Form
 
 
 # ========== CONFIG ==========
@@ -174,35 +175,65 @@ def generate_image(title: str, transcript: str = None):
 @app.post("/transcribe")
 async def transcribe_audio(audio: UploadFile = File(...)):
     try:
-        # Create a temporary file to save the uploaded audio
+        # Save uploaded audio to a temporary file
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_file:
             temp_file.write(await audio.read())
             temp_file_path = temp_file.name
-        
-        # Open the file 
+
+        # Transcribe audio using Whisper with language detection
         with open(temp_file_path, 'rb') as audio_file:
             transcription = client.audio.transcriptions.create(
                 model="whisper-1",
-                file=audio_file
+                file=audio_file,
+                response_format="json",
+                language="auto"  # auto-detect language
             )
 
-        # Remove the temporary file
         os.unlink(temp_file_path)
 
-        print(transcription.text)
+        original_text = transcription["text"]
+        detected_lang = transcription.get("language", "en")
+        print(f"🔎 Detected language: {detected_lang}")
+        print(f"🗣️ Original: {original_text}")
 
-        # Return the transcription text
-        return {"text": transcription.text}
+        # Translate if not English
+        if detected_lang != "en":
+            print("🌐 Translating to English...")
+            translation = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are a translator that returns clear, fluent English."},
+                    {"role": "user", "content": f"Translate this into English: {original_text}"}
+                ]
+            )
+            english_text = translation.choices[0].message.content.strip()
+        else:
+            english_text = original_text
+
+        return {"text": english_text}
 
     except Exception as transcription_error:
-        # Remove the temporary file in case of error
         if os.path.exists(temp_file_path):
             os.unlink(temp_file_path)
-        
         raise HTTPException(
-            status_code=500, 
+            status_code=500,
             detail=f"Transcription failed: {str(transcription_error)}"
         )
+    
+@app.post("/translate-to-english")
+def translate_to_english(text: str = Form(...)):
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful translator who translates any language to natural English only return the translated text."},
+                {"role": "user", "content": f"Translate this into English: {text}"}
+            ]
+        )
+        translation = response.choices[0].message.content.strip()
+        return {"original_text": text, "translated_text": translation}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Translation failed: {str(e)}")
 
 # ========== DEV SERVER ==========
 if __name__ == "__main__":
