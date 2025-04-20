@@ -20,6 +20,29 @@ class Auth0UserResponse(Auth0UserCreate):
 class CharacterListResponse(BaseModel):
     characters: List[str]
 
+class TranscriptListResponse(BaseModel):
+    transcripts: List[str]
+
+@router.get("/my-transcripts", response_model=TranscriptListResponse)
+async def get_my_transcripts():
+    """
+    Retrieves the list of transcripts for the hardcoded user 'armanbance@gmail.com'.
+    """
+    target_email = "armanbance@gmail.com" # Hardcoded as requested
+
+    # Find the user document in the database
+    user_doc = await users_collection.find_one({"email": target_email})
+
+    if user_doc:
+        # Extract the transcripts list, default to empty list if not present
+        transcripts = user_doc.get("transcripts", [])
+        return TranscriptListResponse(transcripts=transcripts)
+    else:
+        # If user not found, return an empty list (or could raise 404)
+        print(f"User '{target_email}' not found when fetching transcripts.")
+        return TranscriptListResponse(transcripts=[])
+    
+
 @router.get("/my-characters", response_model=CharacterListResponse)
 async def get_my_characters():
     """

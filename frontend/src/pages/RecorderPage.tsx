@@ -17,7 +17,7 @@ function RecorderPage() {
   const [error, setError] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [gazeTrack, setGazeTrack] = useState(null);
-
+  const [selectedCharacter, setSelectedCharacter] = useState<string>(""); // <-- 1. Add new state for selected character
   const [callLoading, setCallLoading] = useState(false);
   const [callMessage, setCallMessage] = useState("");
 
@@ -26,7 +26,32 @@ function RecorderPage() {
   );
   const [charactersLoading, setCharactersLoading] = useState<boolean>(true); // Optional loading state
 
+  const [savedTranscripts, setSavedTranscripts] = useState<string[]>([]);
+  const [transcriptsLoading, setTranscriptsLoading] = useState<boolean>(true);
   const generateButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  const fetchTranscripts = async () => {
+    setTranscriptsLoading(true);
+    try {
+      console.log("Fetching saved transcripts...");
+      const response = await axios.get<{ transcripts: string[] }>(
+        "http://localhost:8000/api/auth0-users/my-transcripts" // The new endpoint
+      );
+      if (response.data && Array.isArray(response.data.transcripts)) {
+        setSavedTranscripts(response.data.transcripts);
+        console.log("Fetched transcripts:", response.data.transcripts);
+      } else {
+        console.error("Invalid transcript data received:", response.data);
+        setSavedTranscripts([]);
+      }
+    } catch (err) {
+      console.error("Error fetching transcripts:", err);
+      setError((prevError) => prevError + " Failed to load saved transcripts."); // Append to existing error or set new one
+      setSavedTranscripts([]);
+    } finally {
+      setTranscriptsLoading(false);
+    }
+  };
 
   const fetchCharacters = async () => {
     setCharactersLoading(true); // Start loading
@@ -54,6 +79,7 @@ function RecorderPage() {
   };
   useEffect(() => {
     fetchCharacters();
+    fetchTranscripts();
     // Empty dependency array means this runs once when the component mounts
   }, []);
 
@@ -81,6 +107,7 @@ function RecorderPage() {
       );
       console.log("Transcript saved successfully:", response.data);
       await fetchCharacters();
+      await fetchTranscripts();
     } catch (error) {
       console.error("Error saving transcript to backend:", error);
       // Optional: Set an error state here if you want to notify the user
@@ -181,20 +208,56 @@ function RecorderPage() {
     setIsRecording(false);
   };
 
-  const callVoiceAgent = async () => {
+  const callVoiceAgent = async (
+    characterName: string,
+    bookTitle: string,
+    transcriptsContext: string[]
+  ) => {
+    if (!characterName) {
+      setError("Please select a character before interacting.");
+      return;
+    }
+    if (!bookTitle) {
+      // <-- Add check for title
+      setError("Please enter a book title before interacting.");
+      return;
+    }
     setCallLoading(true);
     setCallMessage("");
     setError(""); // Clear general error if setting specific message
 
     // Make sure to use your *current* ngrok URL
     const outboundServiceUrl =
-      "https://9d0d-128-120-27-122.ngrok-free.app/outbound-call";
+      "https://3956-128-120-27-122.ngrok-free.app/outbound-call";
     // TODO: Replace hardcoded number with dynamic input if needed
     const recipientNumber = "+17078169356";
-    const agentPrompt =
-      "You are Stark, a genius inventor and billionaire philanthropist turned wellness guide. Your mission is to help fellow heroes power down stress and recharge with arc-reactor breathing exercises and mindfulness, just as you would before a high-stakes mission. Speak with Tony's confidence, wit, and warmth. Use simple 'tech' imagery (no heavy engineering—this is wellness, not building a suit!).";
-    const firstMessage = "Hi! How's it going?";
+    // console.log("HIII U ARE:", characterName, "FROM:", title);
 
+    const transcriptHistory =
+      transcriptsContext.length > 0
+        ? `Here are some recent transcripts the user saved:\n${transcriptsContext
+            .map((t, i) => `- Transcript ${i + 1}: ${t}`)
+            .join("\n")}`
+        : "The user hasn't saved any transcripts yet.";
+
+    const agentPrompt = `
+    You are ${characterName}, a character from the book ${bookTitle}. 
+    Speak and behave exactly as ${characterName} would in the books based on what you know from the book. 
+    Stay in character at all times, answer questions as if you are truly living in the world, and never mention that you are an AI or a program.
+    If you are asked about events, people, or places, answer based on what ${characterName} would know from the book.
+    If you don't know something, respond as ${characterName} would—perhaps with curiosity, suspicion, or humor, depending on your personality.
+    Speak clearly, and make the conversation engaging and magical.
+    Context from user's recent transcripts:
+    ${transcriptHistory} 
+    `;
+    const firstMessage = `Greetings! I am ${characterName} from the world of ${bookTitle}. What would you like to talk about, maybe something you read about recently?`;
+    console.log("--- Sending Call Request ---");
+    console.log("Character:", characterName);
+    console.log("Title:", title);
+    console.log("URL:", outboundServiceUrl);
+    console.log("Prompt:", agentPrompt);
+    console.log("First Message:", firstMessage);
+    console.log("Number:", recipientNumber);
     try {
       const response = await axios.post(outboundServiceUrl, {
         prompt: agentPrompt,
@@ -456,23 +519,19 @@ function RecorderPage() {
           )}
         </div>
 
-        {/* --- NEW: Encountered Characters Display --- */}
+        {/* --- Encountered Characters Display --- */}
         {encounteredCharacters.length > 0 && (
-          <div className="border-t pt-4 mt-4">
-            <h3 className="text-gray-700 mb-2 font-medium">
+          // Add 'text-center' to the container for the heading
+          <div className="border-t pt-4 mt-4 text-center">
+            {/* Add classes for styling the heading */}
+            <h3 className="text-xl font-semibold text-[#4e398e] mb-3">
               Characters Encountered
             </h3>
-            {/* Option 1: Simple List */}
-            {/* <ul className="list-disc list-inside text-gray-600">
-                 {encounteredCharacters.map((char, index) => (
-                   <li key={index}>{char}</li>
-                 ))}
-               </ul> */}
-
-            {/* Option 2: Dropdown */}
+            {/* Option 2: Dropdown - Added onChange and value */}
             <select
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-purple-600 transition"
-              defaultValue=""
+              className="w-full px-4 py-2.5 pr-8 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#9076ff] focus:border-[#9076ff] transition appearance-none cursor-pointer"
+              value={selectedCharacter} // <-- 3. Control value with state
+              onChange={(e) => setSelectedCharacter(e.target.value)} // <-- 2. Add onChange handler
             >
               <option value="" disabled>
                 Select a character...
@@ -483,14 +542,34 @@ function RecorderPage() {
                 </option>
               ))}
             </select>
-
-            {/* Option 3: Comma-separated string */}
-            {/* <p className="text-gray-600 bg-gray-50 p-2 rounded border">
-                  {encounteredCharacters.join(', ')}
-                </p> */}
           </div>
         )}
         {/* --- End Characters Display --- */}
+
+        {/* --- NEW: Saved Transcripts Display --- */}
+        <div className="mt-6 border-t pt-4">
+          <h3 className="text-center text-xl font-semibold text-[#4e398e] mb-3">
+            Saved Transcripts
+          </h3>
+          {transcriptsLoading ? (
+            <p className="text-center text-gray-500">Loading transcripts...</p>
+          ) : savedTranscripts.length > 0 ? (
+            <ul className="list-disc list-inside space-y-2 bg-white p-4 rounded-lg shadow">
+              {savedTranscripts.map((ts, index) => (
+                <li key={index} className="text-gray-700 text-sm break-words">
+                  {" "}
+                  {/* Added break-words */}
+                  {ts}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-center text-gray-500">
+              No transcripts saved yet.
+            </p>
+          )}
+        </div>
+        {/* --- End Saved Transcripts Display --- */}
 
         {/* Container for action buttons */}
         <div className="text-center flex flex-col sm:flex-row justify-center items-center gap-4">
@@ -507,17 +586,25 @@ function RecorderPage() {
             {loading ? "Generating…" : "Generate Image"}
           </button>
 
-          {/* Call Agent Button */}
+          {/* Call Agent Button - Updated text and disabled logic */}
           <button
-            onClick={callVoiceAgent}
-            disabled={callLoading || loading}
+            onClick={() =>
+              callVoiceAgent(selectedCharacter, title, savedTranscripts)
+            } // Pass selected character if needed by the function
+            disabled={callLoading || loading || !selectedCharacter || !title} // Keep disabled check
             className={`inline-block px-8 py-3 rounded-full text-white font-semibold shadow-lg transition transform hover:scale-105 ${
-              callLoading || loading
+              callLoading || loading || !selectedCharacter // Updated disabled condition
                 ? "bg-gray-300 cursor-not-allowed"
-                : "bg-[#9076ff] hover:bg-[#4e398e]" // Example: green color
+                : "bg-[#9076ff] hover:bg-[#4e398e]"
             }`}
           >
-            {callLoading ? "Calling…" : "Interact with Selected Character"}
+            {/* Dynamically change button text */}
+            {callLoading
+              ? "Calling…"
+              : selectedCharacter
+              ? `Interact with ${selectedCharacter}` // Show selected character name
+              : "Select Character to Interact"}{" "}
+            {/* Default text if none selected */}
           </button>
         </div>
 
